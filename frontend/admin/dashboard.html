@@ -13,13 +13,24 @@
 
     <h3>Agendamentos</h3>
     
-    <label for="filtroStatus"><strong>Filtrar por estado:</strong></label>
-    <select id="filtroStatus">
-        <option value="Todos">Todos</option>
-        <option value="Pendente">Pendente</option>
-        <option value="Confirmado">Confirmado</option>
-        <option value="Cancelado">Cancelado</option>
-    </select>
+    <!-- Filtros -->
+<div style="margin: 10px 0;">
+  <label for="filtroStatus"><strong>Estado:</strong></label>
+  <select id="filtroStatus">
+    <option value="Todos">Todos</option>
+    <option value="Pendente">Pendente</option>
+    <option value="Confirmado">Confirmado</option>
+    <option value="Cancelado">Cancelado</option>
+  </select>
+
+  <label for="filtroData" style="margin-left: 10px;"><strong>Data:</strong></label>
+  <input type="date" id="filtroData" />
+
+  <label for="pesquisaCliente" style="margin-left: 10px;"><strong>Cliente:</strong></label>
+  <input type="text" id="pesquisaCliente" placeholder="ex: João" />
+
+  <button id="btnLimparFiltros" type="button" style="margin-left: 10px;">Limpar</button>
+</div>
 
     <div id="agendamentosArea">A carregar...</div>
 

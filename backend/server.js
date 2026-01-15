@@ -279,6 +279,29 @@ app.put("/agendamentos/:id/status", async (req, res) => {
   }
 });
 
+// ✅ APAGAR AGENDAMENTO
+app.delete("/agendamentos/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+
+    const result = await pool
+      .request()
+      .input("id", sql.Int, id)
+      .query(`
+        DELETE FROM Agendamentos
+        WHERE id_agendamentos = @id
+      `);
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ erro: "Agendamento não encontrado" });
+    }
+
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ erro: err.message });
+  }
+});
+
 /** Arranca o servidor */
 app.listen(PORT, () => {
   console.log(`🚀 Servidor a correr em http://localhost:${PORT}`);
