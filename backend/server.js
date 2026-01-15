@@ -182,51 +182,86 @@ app.get("/agendamentos", async (req, res) => {
  * ✅ Bloqueia se já houver agendamento para o mesmo funcionário na mesma data/hora
  * (ignorando status = Cancelado)
  */
+// ✅ CRIAR AGENDAMENTO (com bloqueio por INTERVALO)
 app.post("/agendamentos", async (req, res) => {
   try {
-    const { id_cliente, id_funcionario, id_servico, data, hora, observacoes } =
-      req.body;
+    const { id_cliente, id_funcionario, id_servico, data, hora, observacoes } = req.body;
 
+    // 1) Validar dados obrigatórios
     if (!id_cliente || !id_funcionario || !id_servico || !data || !hora) {
       return res.status(400).json({ erro: "Faltam dados obrigatórios" });
     }
 
-    // Cria DateTime a partir de data+hora
-    const dataHoraStr = `${data}T${hora}:00`;
-    const dataHora = new Date(dataHoraStr);
+    // 2) Construir DateTime do início (ex: 2026-01-14T15:30:00)
+    const inicioStr = `${data}T${hora}:00`;
+    const inicioNovo = new Date(inicioStr);
 
-    if (isNaN(dataHora.getTime())) {
+    if (isNaN(inicioNovo.getTime())) {
       return res.status(400).json({ erro: "Data/Hora inválidas" });
     }
 
-    // 1) Verifica conflito (mesmo funcionário + mesmo datetime), ignorando cancelados
-    const check = await pool
+    // 3) Ir buscar a duração do serviço (em minutos)
+    const serv = await pool
       .request()
-      .input("id_funcionario", sql.Int, id_funcionario)
-      .input("dataHora", sql.DateTime, dataHora)
+      .input("id_servico", sql.Int, id_servico)
       .query(`
-        SELECT COUNT(*) AS total
-        FROM Agendamentos
-        WHERE id_funcionario = @id_funcionario
-          AND data_hora_agendamento = @dataHora
-          AND (status IS NULL OR status <> 'Cancelado')
+        SELECT ISNULL(duracao_estimada, 30) AS duracao_estimada
+        FROM Servicos
+        WHERE id_servico = @id_servico
       `);
 
-    const total = check.recordset[0].total;
-
-    if (total > 0) {
-      return res.status(409).json({
-        erro: "Horário indisponível: o funcionário já tem um agendamento nesse horário.",
-      });
+    if (serv.recordset.length === 0) {
+      return res.status(400).json({ erro: "Serviço inválido" });
     }
 
-    // 2) Insere agendamento (por defeito Pendente)
+    let duracaoMin = parseInt(serv.recordset[0].duracao_estimada, 10);
+    if (isNaN(duracaoMin) || duracaoMin <= 0) duracaoMin = 30;
+
+    // 4) Calcular o fim do novo agendamento
+    const fimNovo = new Date(inicioNovo.getTime() + duracaoMin * 60000);
+
+    // 5) Buscar TODOS os agendamentos existentes desse funcionário nesse dia (não cancelados)
+    const existentes = await pool
+      .request()
+      .input("id_funcionario", sql.Int, id_funcionario)
+      .input("data", sql.Date, new Date(`${data}T00:00:00`))
+      .query(`
+        SELECT
+          a.data_hora_agendamento AS inicio,
+          ISNULL(s.duracao_estimada, 30) AS duracao
+        FROM Agendamentos a
+        JOIN Servicos s ON a.id_servico = s.id_servico
+        WHERE a.id_funcionario = @id_funcionario
+          AND CONVERT(date, a.data_hora_agendamento) = @data
+          AND (a.status IS NULL OR a.status <> 'Cancelado')
+      `);
+
+    // Função: verifica sobreposição de intervalos
+    // há choque se: inicioNovo < fimExistente AND fimNovo > inicioExistente
+    function sobrepoe(aIni, aFim, bIni, bFim) {
+      return aIni < bFim && aFim > bIni;
+    }
+
+    // 6) Verificar se choca com algum agendamento existente
+    for (const r of existentes.recordset) {
+      const ini = new Date(r.inicio);
+      const dur = parseInt(r.duracao, 10) || 30;
+      const fim = new Date(ini.getTime() + dur * 60000);
+
+      if (sobrepoe(inicioNovo, fimNovo, ini, fim)) {
+        return res.status(409).json({
+          erro: "Horário indisponível: existe um agendamento que se sobrepõe a este intervalo."
+        });
+      }
+    }
+
+    // 7) Se estiver livre, inserir o agendamento
     await pool
       .request()
       .input("id_cliente", sql.Int, id_cliente)
       .input("id_funcionario", sql.Int, id_funcionario)
       .input("id_servico", sql.Int, id_servico)
-      .input("dataHora", sql.DateTime, dataHora)
+      .input("dataHora", sql.DateTime, inicioNovo)
       .input("status", sql.VarChar, "Pendente")
       .input("observacoes", sql.VarChar, observacoes ?? null)
       .query(`
@@ -237,10 +272,12 @@ app.post("/agendamentos", async (req, res) => {
       `);
 
     return res.json({ ok: true });
+
   } catch (err) {
     return res.status(500).json({ erro: err.message });
   }
 });
+
 
 /**
  * ==================================
