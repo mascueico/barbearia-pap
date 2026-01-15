@@ -302,6 +302,112 @@ app.delete("/agendamentos/:id", async (req, res) => {
   }
 });
 
+// ✅ HORÁRIOS DISPONÍVEIS
+// Exemplo: /horarios-disponiveis?id_funcionario=1&data=2026-01-14&id_servico=2
+app.get("/horarios-disponiveis", async (req, res) => {
+  try {
+    const id_funcionario = parseInt(req.query.id_funcionario, 10);
+    const data = req.query.data; // "YYYY-MM-DD"
+    const id_servico = req.query.id_servico ? parseInt(req.query.id_servico, 10) : null;
+
+    if (!id_funcionario || !data) {
+      return res.status(400).json({ erro: "Faltam parâmetros: id_funcionario e data" });
+    }
+
+    // 1) Definir horário de funcionamento (podes ajustar)
+    const HORA_ABERTURA = "09:00";
+    const HORA_FECHO = "19:00";
+
+    // 2) Duração do serviço (se não vier id_servico, usamos 30 minutos)
+    let duracaoMin = 30;
+
+    if (id_servico) {
+      const serv = await pool.request()
+        .input("id_servico", sql.Int, id_servico)
+        .query(`
+          SELECT duracao_estimada
+          FROM Servicos
+          WHERE id_servico = @id_servico
+        `);
+
+      if (serv.recordset.length > 0 && serv.recordset[0].duracao_estimada != null) {
+        duracaoMin = parseInt(serv.recordset[0].duracao_estimada, 10);
+        if (isNaN(duracaoMin) || duracaoMin <= 0) duracaoMin = 30;
+      }
+    }
+
+    // 3) Buscar agendamentos existentes nesse dia (com duração do serviço de cada um)
+    const ags = await pool.request()
+      .input("id_funcionario", sql.Int, id_funcionario)
+      .input("data", sql.Date, new Date(`${data}T00:00:00`))
+      .query(`
+        SELECT
+          a.data_hora_agendamento AS inicio,
+          ISNULL(s.duracao_estimada, 30) AS duracao
+        FROM Agendamentos a
+        JOIN Servicos s ON a.id_servico = s.id_servico
+        WHERE a.id_funcionario = @id_funcionario
+          AND CONVERT(date, a.data_hora_agendamento) = @data
+          AND (a.status IS NULL OR a.status <> 'Cancelado')
+      `);
+
+    // 4) Converter agendamentos em intervalos ocupados [inicio, fim]
+    const ocupados = ags.recordset.map(r => {
+      const ini = new Date(r.inicio);
+      const fim = new Date(ini.getTime() + (parseInt(r.duracao, 10) || 30) * 60000);
+      return { ini, fim };
+    });
+
+    // Função auxiliar: "HH:MM" -> Date no dia escolhido
+    function dateAt(hhmm) {
+      return new Date(`${data}T${hhmm}:00`);
+    }
+
+    // Função auxiliar: overlap de intervalos
+    function sobrepoe(aIni, aFim, bIni, bFim) {
+      return aIni < bFim && aFim > bIni;
+    }
+
+    // 5) Gerar slots (passos de 15 min para ser mais “pro”)
+    const STEP_MIN = 15;
+    const inicioDia = dateAt(HORA_ABERTURA);
+    const fimDia = dateAt(HORA_FECHO);
+
+    // (opcional) se a data for hoje, não sugerir horas no passado
+    const agora = new Date();
+
+    const disponiveis = [];
+    for (
+      let t = new Date(inicioDia);
+      t.getTime() + duracaoMin * 60000 <= fimDia.getTime();
+      t = new Date(t.getTime() + STEP_MIN * 60000)
+    ) {
+      const tFim = new Date(t.getTime() + duracaoMin * 60000);
+
+      // não permitir no passado se for hoje
+      if (tFim <= agora && data === agora.toISOString().slice(0, 10)) continue;
+
+      // verificar se este slot choca com algum ocupado
+      const choca = ocupados.some(o => sobrepoe(t, tFim, o.ini, o.fim));
+      if (!choca) {
+        const hh = String(t.getHours()).padStart(2, "0");
+        const mm = String(t.getMinutes()).padStart(2, "0");
+        disponiveis.push(`${hh}:${mm}`);
+      }
+    }
+
+    return res.json({
+      id_funcionario,
+      data,
+      duracaoMin,
+      horarios: disponiveis
+    });
+
+  } catch (err) {
+    return res.status(500).json({ erro: err.message });
+  }
+});
+
 /** Arranca o servidor */
 app.listen(PORT, () => {
   console.log(`🚀 Servidor a correr em http://localhost:${PORT}`);
