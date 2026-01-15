@@ -17,6 +17,7 @@ body {
   text-align: center;
 }
 
+/* Inputs gerais (login) */
 input {
   width: 100%;
   padding: 10px;
@@ -62,7 +63,7 @@ table.agendamentos th {
   font-weight: 600;
 }
 
-/* Hover na linha */
+/* Hover na linha (escuro suave) */
 table.agendamentos tbody tr:hover {
   background: rgba(255,255,255,0.05);
 }
@@ -77,11 +78,11 @@ table.agendamentos tbody tr:hover {
 }
 
 /* cores básicas (sem complicar) */
-.badge-pendente { background: #fff3cd; border: 1px solid #ffeeba; }
-.badge-confirmado { background: #d4edda; border: 1px solid #c3e6cb; }
-.badge-cancelado { background: #f8d7da; border: 1px solid #f5c6cb; }
+.badge-pendente { background: #fff3cd; border: 1px solid #ffeeba; color: #111; }
+.badge-confirmado { background: #d4edda; border: 1px solid #c3e6cb; color: #111; }
+.badge-cancelado { background: #f8d7da; border: 1px solid #f5c6cb; color: #111; }
 
-/* Botões de ação */
+/* Botões de ação (dentro da tabela) */
 .btn {
   padding: 6px 10px;
   border-radius: 8px;
@@ -89,6 +90,7 @@ table.agendamentos tbody tr:hover {
   cursor: pointer;
   font-size: 13px;
   margin-right: 6px;
+  width: auto;              /* importante: não ficar 100% */
 }
 
 .btn:hover {
@@ -103,41 +105,50 @@ table.agendamentos tbody tr:hover {
   cursor: not-allowed;
 }
 
-#filtroStatus {
-  margin: 8px 0 12px 0;
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-}
+/* =========================
+   FILTROS (Back-office)
+   ========================= */
 
 /* Linha dos filtros */
 .filtros {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
+  justify-content: center;
+  margin: 12px 0 6px 0;
 }
 
-/* Inputs e selects dos filtros */
-.filtros select,
-.filtros input {
+/* Cada "grupo" = Label + Campo juntos */
+.filtro-grupo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Labels dos filtros não quebram linha */
+.filtro-grupo label {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* Inputs/selects dos filtros (override do input geral 100%) */
+.filtro-grupo input,
+.filtro-grupo select {
   width: auto;
-  min-width: 120px;
+  margin: 0;                /* tira o margin do input geral */
   padding: 6px 10px;
   border-radius: 8px;
+  border: 1px solid #ccc;
 }
 
-/* Campo data */
-#filtroData {
-  min-width: 140px;
-}
+/* Tamanhos mínimos */
+#filtroStatus { min-width: 130px; }
+#filtroData { min-width: 140px; }
+#pesquisaCliente { min-width: 180px; }
 
-/* Campo cliente */
-#pesquisaCliente {
-  min-width: 180px;
-}
-
-/* Botão limpar */
+/* Botão limpar (não 100%) */
 #btnLimparFiltros {
-  padding: 6px 14px;
+  width: auto;
+  padding: 8px 18px;
 }

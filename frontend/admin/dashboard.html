@@ -15,22 +15,31 @@
 
     <!-- FILTROS -->
     <div class="filtros">
-      <label>Estado:</label>
-      <select id="filtroStatus">
-        <option value="Todos">Todos</option>
-        <option value="Pendente">Pendente</option>
-        <option value="Confirmado">Confirmado</option>
-        <option value="Cancelado">Cancelado</option>
-      </select>
 
-      <label>Data:</label>
-      <input type="date" id="filtroData">
-
-      <label>Cliente:</label>
-      <input type="text" id="pesquisaCliente" placeholder="ex: João">
-
+      <div class="filtro-grupo">
+        <label>Estado:</label>
+        <select id="filtroStatus">
+          <option value="Todos">Todos</option>
+          <option value="Pendente">Pendente</option>
+          <option value="Confirmado">Confirmado</option>
+          <option value="Cancelado">Cancelado</option>
+        </select>
+      </div>
+    
+      <div class="filtro-grupo">
+        <label>Data:</label>
+        <input type="date" id="filtroData">
+      </div>
+    
+      <div class="filtro-grupo">
+        <label>Cliente:</label>
+        <input type="text" id="pesquisaCliente" placeholder="ex: João">
+      </div>
+    
       <button id="btnLimparFiltros" type="button">Limpar</button>
+    
     </div>
+    
 
     <!-- TABELA -->
     <div id="agendamentosArea">A carregar...</div>
