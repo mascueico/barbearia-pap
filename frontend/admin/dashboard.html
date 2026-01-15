@@ -12,26 +12,27 @@
     <p id="welcome"></p>
 
     <h3>Agendamentos</h3>
-    
-    <!-- Filtros -->
-<div style="margin: 10px 0;">
-  <label for="filtroStatus"><strong>Estado:</strong></label>
-  <select id="filtroStatus">
-    <option value="Todos">Todos</option>
-    <option value="Pendente">Pendente</option>
-    <option value="Confirmado">Confirmado</option>
-    <option value="Cancelado">Cancelado</option>
-  </select>
 
-  <label for="filtroData" style="margin-left: 10px;"><strong>Data:</strong></label>
-  <input type="date" id="filtroData" />
+    <!-- FILTROS -->
+    <div class="filtros">
+      <label>Estado:</label>
+      <select id="filtroStatus">
+        <option value="Todos">Todos</option>
+        <option value="Pendente">Pendente</option>
+        <option value="Confirmado">Confirmado</option>
+        <option value="Cancelado">Cancelado</option>
+      </select>
 
-  <label for="pesquisaCliente" style="margin-left: 10px;"><strong>Cliente:</strong></label>
-  <input type="text" id="pesquisaCliente" placeholder="ex: João" />
+      <label>Data:</label>
+      <input type="date" id="filtroData">
 
-  <button id="btnLimparFiltros" type="button" style="margin-left: 10px;">Limpar</button>
-</div>
+      <label>Cliente:</label>
+      <input type="text" id="pesquisaCliente" placeholder="ex: João">
 
+      <button id="btnLimparFiltros" type="button">Limpar</button>
+    </div>
+
+    <!-- TABELA -->
     <div id="agendamentosArea">A carregar...</div>
 
     <button id="btnLogout">Sair</button>
