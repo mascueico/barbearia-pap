@@ -58,13 +58,13 @@ table.agendamentos td {
 }
 
 table.agendamentos th {
-  background: #f3f3f3;
+  background: rgb(255, 255, 255, 0.05);
   font-weight: 600;
 }
 
 /* Hover na linha */
 table.agendamentos tbody tr:hover {
-  background: #fafafa;
+  background: rgba(255,255,255,0.05);
 }
 
 /* Estado (badges) */
