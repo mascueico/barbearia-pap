@@ -1,0 +1,111 @@
+body {
+  background: #111;
+  color: white;
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.login-box {
+  background: #222;
+  padding: 30px;
+  border-radius: 10px;
+  width: 320px;
+  text-align: center;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: 0;
+  border-radius: 6px;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background: #c59d5f;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+#msg { margin-top: 10px; }
+
+/* === Tabela de Agendamentos === */
+.table-wrap {
+  overflow-x: auto;
+}
+
+table.agendamentos {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+table.agendamentos th,
+table.agendamentos td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+  vertical-align: middle;
+}
+
+table.agendamentos th {
+  background: #f3f3f3;
+  font-weight: 600;
+}
+
+/* Hover na linha */
+table.agendamentos tbody tr:hover {
+  background: #fafafa;
+}
+
+/* Estado (badges) */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* cores básicas (sem complicar) */
+.badge-pendente { background: #fff3cd; border: 1px solid #ffeeba; }
+.badge-confirmado { background: #d4edda; border: 1px solid #c3e6cb; }
+.badge-cancelado { background: #f8d7da; border: 1px solid #f5c6cb; }
+
+/* Botões de ação */
+.btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  font-size: 13px;
+  margin-right: 6px;
+}
+
+.btn:hover {
+  filter: brightness(0.97);
+}
+
+.btn-confirmar { background: #d4edda; border-color: #c3e6cb; }
+.btn-cancelar { background: #f8d7da; border-color: #f5c6cb; }
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#filtroStatus {
+  margin: 8px 0 12px 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
