@@ -456,7 +456,7 @@ app.post("/clientes", async (req, res) => {
 
     // 1) Ver se já existe cliente com este telefone
     const existe = await pool.request()
-      .input("telefone", sql.NVarChar, telefone)
+      .input("telefone", sql.VarChar, telefone)
       .query(`
         SELECT TOP 1 id_cliente, nome_cliente
         FROM Clientes
@@ -467,14 +467,24 @@ app.post("/clientes", async (req, res) => {
       return res.json({ ok: true, id_cliente: existe.recordset[0].id_cliente });
     }
 
-    // 2) Se não existe, criar
+    // 2) Criar email "fake" (para cumprir NOT NULL)
+    // Ex: 912345678 -> cliente_912345678@pap.local
+    const emailGerado = `cliente_${telefone.replace(/\s+/g, "")}@pap.local`;
+
+    // 3) Criar senha "fake" (para cumprir NOT NULL)
+    // (não é login real, é só para não deixar a coluna vazia)
+    const senhaGerada = `temp_${Math.random().toString(36).slice(2, 10)}`;
+
+    // 4) Inserir cliente e devolver o id
     const criado = await pool.request()
-      .input("nome", sql.NVarChar, nome)
-      .input("telefone", sql.NVarChar, telefone)
+      .input("nome", sql.VarChar, nome)
+      .input("email", sql.VarChar, emailGerado)
+      .input("telefone", sql.VarChar, telefone)
+      .input("senha", sql.VarChar, senhaGerada)
       .query(`
-        INSERT INTO Clientes (nome_cliente, telefone)
+        INSERT INTO Clientes (nome_cliente, email, telefone, data_registo, senha)
         OUTPUT INSERTED.id_cliente
-        VALUES (@nome, @telefone)
+        VALUES (@nome, @email, @telefone, GETDATE(), @senha)
       `);
 
     return res.json({ ok: true, id_cliente: criado.recordset[0].id_cliente });
@@ -483,6 +493,7 @@ app.post("/clientes", async (req, res) => {
     return res.status(500).json({ erro: err.message });
   }
 });
+
 
 /** Arranca o servidor */
 app.listen(PORT, () => {
