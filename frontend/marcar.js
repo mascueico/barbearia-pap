@@ -1,3 +1,4 @@
+console.log("marcar.js carregou");
 (async function () {
   const nome = document.getElementById("nome");
   const telefone = document.getElementById("telefone");
