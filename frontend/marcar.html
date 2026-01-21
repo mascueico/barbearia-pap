@@ -1,18 +1,38 @@
-<label>Serviço:</label>
-<select id="id_servico"></select>
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Marcar Agendamento</title>
+</head>
+<body>
+  <h2>Marcar Agendamento</h2>
 
-<label>Funcionário:</label>
-<select id="id_funcionario"></select>
+  <label>Nome:</label><br>
+  <input type="text" id="nome" placeholder="Ex: João Silva"><br><br>
 
-<label>Data:</label>
-<input type="date" id="data">
+  <label>Telefone:</label><br>
+  <input type="text" id="telefone" placeholder="Ex: 912345678"><br><br>
 
-<label>Hora disponível:</label>
-<select id="hora"></select>
+  <label>Serviço:</label><br>
+  <select id="id_servico"></select><br><br>
 
-<p id="msg"></p>
+  <label>Funcionário:</label><br>
+  <select id="id_funcionario"></select><br><br>
 
-<button id="btnCarregarHoras" type="button">Ver horários</button>
-<button id="btnMarcar" type="button">Marcar</button>
+  <label>Data:</label><br>
+  <input type="date" id="data"><br><br>
 
-<script src="js/marcar.js"></script>
+  <label>Hora disponível:</label><br>
+  <select id="hora"></select><br><br>
+
+  <label>Observações (opcional):</label><br>
+  <input type="text" id="observacoes" placeholder="Ex: quero degradê"><br><br>
+
+  <button id="btnVerHoras" type="button">Ver horários disponíveis</button>
+  <button id="btnMarcar" type="button">Marcar</button>
+
+  <p id="msg"></p>
+
+  <script src="js/marcar.js"></script>
+</body>
+</html>

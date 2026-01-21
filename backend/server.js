@@ -445,6 +445,45 @@ app.get("/horarios-disponiveis", async (req, res) => {
   }
 });
 
+// ✅ Criar cliente (ou devolver o que já existe pelo telefone)
+app.post("/clientes", async (req, res) => {
+  try {
+    const { nome, telefone } = req.body;
+
+    if (!nome || !telefone) {
+      return res.status(400).json({ erro: "Faltam dados do cliente (nome/telefone)" });
+    }
+
+    // 1) Ver se já existe cliente com este telefone
+    const existe = await pool.request()
+      .input("telefone", sql.NVarChar, telefone)
+      .query(`
+        SELECT TOP 1 id_cliente, nome_cliente
+        FROM Clientes
+        WHERE telefone = @telefone
+      `);
+
+    if (existe.recordset.length > 0) {
+      return res.json({ ok: true, id_cliente: existe.recordset[0].id_cliente });
+    }
+
+    // 2) Se não existe, criar
+    const criado = await pool.request()
+      .input("nome", sql.NVarChar, nome)
+      .input("telefone", sql.NVarChar, telefone)
+      .query(`
+        INSERT INTO Clientes (nome_cliente, telefone)
+        OUTPUT INSERTED.id_cliente
+        VALUES (@nome, @telefone)
+      `);
+
+    return res.json({ ok: true, id_cliente: criado.recordset[0].id_cliente });
+
+  } catch (err) {
+    return res.status(500).json({ erro: err.message });
+  }
+});
+
 /** Arranca o servidor */
 app.listen(PORT, () => {
   console.log(`🚀 Servidor a correr em http://localhost:${PORT}`);
