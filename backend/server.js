@@ -77,8 +77,8 @@ app.post("/login", async (req, res) => {
 
     const result = await pool
       .request()
-      .input("email", sql.NVarChar, email)
-      .input("pass", sql.NVarChar, pass)
+      .input("email", sql.NVarChar(255), email)
+      .input("pass", sql.NVarChar(255), pass)
       .query(`
         SELECT id_admin, nome
         FROM Administradores
@@ -262,8 +262,8 @@ app.post("/agendamentos", async (req, res) => {
       .input("id_funcionario", sql.Int, id_funcionario)
       .input("id_servico", sql.Int, id_servico)
       .input("dataHora", sql.DateTime, inicioNovo)
-      .input("status", sql.VarChar, "Pendente")
-      .input("observacoes", sql.VarChar, observacoes ?? null)
+      .input("status", sql.VarChar(20), "Pendente")
+      .input("observacoes", sql.VarChar(500), observacoes ?? null)
       .query(`
         INSERT INTO Agendamentos
           (id_cliente, id_funcionario, id_servico, data_hora_agendamento, status, observacoes)
@@ -351,9 +351,38 @@ app.get("/horarios-disponiveis", async (req, res) => {
       return res.status(400).json({ erro: "Faltam parâmetros: id_funcionario e data" });
     }
 
-    // 1) Definir horário de funcionamento (podes ajustar)
-    const HORA_ABERTURA = "09:00";
-    const HORA_FECHO = "19:00";
+// 1) descobrir dia da semana (1=Seg ... 7=Dom)
+const d = new Date(`${data}T00:00:00`);
+let diaSemana = d.getDay(); // 0=Dom ... 6=Sáb
+diaSemana = diaSemana === 0 ? 7 : diaSemana;
+
+// 2) buscar horario do funcionario nesse dia
+const hor = await pool.request()
+  .input("id_funcionario", sql.Int, id_funcionario)
+  .input("dia_semana", sql.TinyInt, diaSemana)
+  .query(`
+    SELECT TOP 1 hora_inicio, hora_fim
+    FROM Horario
+    WHERE id_funcionario = @id_funcionario
+      AND dia_semana = @dia_semana
+  `);
+
+if (hor.recordset.length === 0) {
+  return res.json({
+    id_funcionario,
+    data,
+    duracaoMin,
+    horarios: []
+  });
+}
+
+const HORA_ABERTURA = hor.recordset[0].hora_inicio
+  .toString()
+  .slice(0, 5);
+
+const HORA_FECHO = hor.recordset[0].hora_fim
+  .toString()
+  .slice(0, 5);
 
     // 2) Duração do serviço (se não vier id_servico, usamos 30 minutos)
     let duracaoMin = 30;
@@ -477,10 +506,10 @@ app.post("/clientes", async (req, res) => {
 
     // 4) Inserir cliente e devolver o id
     const criado = await pool.request()
-      .input("nome", sql.VarChar, nome)
-      .input("email", sql.VarChar, emailGerado)
-      .input("telefone", sql.VarChar, telefone)
-      .input("senha", sql.VarChar, senhaGerada)
+    .input("nome", sql.VarChar(100), nome)
+    .input("email", sql.VarChar(255), emailGerado)
+    .input("telefone", sql.VarChar(30), telefone)
+    .input("senha", sql.VarChar(255), senhaGerada)
       .query(`
         INSERT INTO Clientes (nome_cliente, email, telefone, data_registo, senha)
         OUTPUT INSERTED.id_cliente
