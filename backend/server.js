@@ -15,6 +15,7 @@
 
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 
 // IMPORTANTE: msnodesqlv8 para Windows Auth
 const sql = require("mssql/msnodesqlv8");
@@ -24,6 +25,9 @@ const PORT = 3000;
 
 app.use(cors());
 app.use(express.json());
+
+
+app.use(express.static(path.join(__dirname, "../frontend")));
 
 /**
  * ✅ Ligações Windows Auth via ODBC Driver 17
