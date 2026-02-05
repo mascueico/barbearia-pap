@@ -11,6 +11,13 @@
  *  GET  /agendamentos         -> listar agendamentos (JOIN + data/hora)
  *  POST /agendamentos         -> criar agendamento (com bloqueio de horário)
  *  PUT  /agendamentos/:id/status -> alterar status (Confirmado/Cancelado/Pendente)
+ *  DELETE /agendamentos/:id   -> apagar agendamento
+ *  GET  /horarios-disponiveis -> horários disponíveis
+ *  POST /clientes             -> criar/obter cliente
+ *
+ * ✅ Frontend servido por Express:
+ *  http://localhost:3000/marcar.html
+ *  http://localhost:3000/js/marcar.js
  */
 
 const express = require("express");
@@ -26,8 +33,22 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
+// ✅ Servir o frontend (pasta ../frontend)
+const frontendPath = path.join(__dirname, "..", "frontend");
+app.use(express.static(frontendPath));
+console.log("📁 A servir frontend de:", frontendPath);
 
-app.use(express.static(path.join(__dirname, "../frontend")));
+// ✅ servir ficheiros estáticos (html, js, css)
+app.use(express.static(frontendPath));
+
+// ✅ rota de debug (para confirmares no browser)
+app.get("/__debug", (req, res) => {
+  res.json({
+    ok: true,
+    frontendPath,
+    exists: require("fs").existsSync(frontendPath),
+  });
+});
 
 /**
  * ✅ Ligações Windows Auth via ODBC Driver 17
@@ -183,10 +204,8 @@ app.get("/agendamentos", async (req, res) => {
  *   observacoes: "..."
  * }
  *
- * ✅ Bloqueia se já houver agendamento para o mesmo funcionário na mesma data/hora
- * (ignorando status = Cancelado)
+ * ✅ Bloqueio por sobreposição de intervalos
  */
-// ✅ CRIAR AGENDAMENTO (com bloqueio por INTERVALO)
 app.post("/agendamentos", async (req, res) => {
   try {
     const { id_cliente, id_funcionario, id_servico, data, hora, observacoes } = req.body;
@@ -228,7 +247,8 @@ app.post("/agendamentos", async (req, res) => {
     const existentes = await pool
       .request()
       .input("id_funcionario", sql.Int, id_funcionario)
-      .input("data", sql.Date, new Date(`${data}T00:00:00`))
+      // ✅ passar data como string para evitar tretas de timezone
+      .input("data", sql.VarChar(10), data)
       .query(`
         SELECT
           a.data_hora_agendamento AS inicio,
@@ -254,7 +274,7 @@ app.post("/agendamentos", async (req, res) => {
 
       if (sobrepoe(inicioNovo, fimNovo, ini, fim)) {
         return res.status(409).json({
-          erro: "Horário indisponível: existe um agendamento que se sobrepõe a este intervalo."
+          erro: "Horário indisponível: existe um agendamento que se sobrepõe a este intervalo.",
         });
       }
     }
@@ -276,19 +296,15 @@ app.post("/agendamentos", async (req, res) => {
       `);
 
     return res.json({ ok: true });
-
   } catch (err) {
     return res.status(500).json({ erro: err.message });
   }
 });
 
-
 /**
  * ==================================
  * ATUALIZAR STATUS DO AGENDAMENTO
  * ==================================
- * PUT /agendamentos/:id/status
- * body: { status: "Confirmado" | "Cancelado" | "Pendente" }
  */
 app.put("/agendamentos/:id/status", async (req, res) => {
   try {
@@ -303,7 +319,7 @@ app.put("/agendamentos/:id/status", async (req, res) => {
     const result = await pool
       .request()
       .input("id", sql.Int, id)
-      .input("status", sql.VarChar, status)
+      .input("status", sql.VarChar(20), status)
       .query(`
         UPDATE Agendamentos
         SET status = @status
@@ -355,44 +371,12 @@ app.get("/horarios-disponiveis", async (req, res) => {
       return res.status(400).json({ erro: "Faltam parâmetros: id_funcionario e data" });
     }
 
-// 1) descobrir dia da semana (1=Seg ... 7=Dom)
-const d = new Date(`${data}T00:00:00`);
-let diaSemana = d.getDay(); // 0=Dom ... 6=Sáb
-diaSemana = diaSemana === 0 ? 7 : diaSemana;
-
-// 2) buscar horario do funcionario nesse dia
-const hor = await pool.request()
-  .input("id_funcionario", sql.Int, id_funcionario)
-  .input("dia_semana", sql.TinyInt, diaSemana)
-  .query(`
-    SELECT TOP 1 hora_inicio, hora_fim
-    FROM Horario
-    WHERE id_funcionario = @id_funcionario
-      AND dia_semana = @dia_semana
-  `);
-
-if (hor.recordset.length === 0) {
-  return res.json({
-    id_funcionario,
-    data,
-    duracaoMin,
-    horarios: []
-  });
-}
-
-const HORA_ABERTURA = hor.recordset[0].hora_inicio
-  .toString()
-  .slice(0, 5);
-
-const HORA_FECHO = hor.recordset[0].hora_fim
-  .toString()
-  .slice(0, 5);
-
-    // 2) Duração do serviço (se não vier id_servico, usamos 30 minutos)
+    // 1) Duração do serviço (se não vier id_servico, usamos 30 minutos)
     let duracaoMin = 30;
 
     if (id_servico) {
-      const serv = await pool.request()
+      const serv = await pool
+        .request()
         .input("id_servico", sql.Int, id_servico)
         .query(`
           SELECT duracao_estimada
@@ -406,10 +390,11 @@ const HORA_FECHO = hor.recordset[0].hora_fim
       }
     }
 
-    // 3) Buscar agendamentos existentes nesse dia (com duração do serviço de cada um)
-    const ags = await pool.request()
+    // 2) Buscar agendamentos existentes nesse dia (com duração do serviço de cada um)
+    const ags = await pool
+      .request()
       .input("id_funcionario", sql.Int, id_funcionario)
-      .input("data", sql.Date, new Date(`${data}T00:00:00`))
+      .input("data", sql.VarChar(10), data)
       .query(`
         SELECT
           a.data_hora_agendamento AS inicio,
@@ -421,8 +406,8 @@ const HORA_FECHO = hor.recordset[0].hora_fim
           AND (a.status IS NULL OR a.status <> 'Cancelado')
       `);
 
-    // 4) Converter agendamentos em intervalos ocupados [inicio, fim]
-    const ocupados = ags.recordset.map(r => {
+    // 3) Converter agendamentos em intervalos ocupados [inicio, fim]
+    const ocupados = ags.recordset.map((r) => {
       const ini = new Date(r.inicio);
       const fim = new Date(ini.getTime() + (parseInt(r.duracao, 10) || 30) * 60000);
       return { ini, fim };
@@ -438,13 +423,41 @@ const HORA_FECHO = hor.recordset[0].hora_fim
       return aIni < bFim && aFim > bIni;
     }
 
-    // 5) Gerar slots (passos de 15 min para ser mais “pro”)
+    // 4) Horário do funcionário com base na tabela Horario (1=Seg ... 7=Dom)
+    const d = new Date(`${data}T00:00:00`);
+    let diaSemana = d.getDay(); // 0=Dom ... 6=Sáb
+    diaSemana = diaSemana === 0 ? 7 : diaSemana;
+
+    const hor = await pool
+      .request()
+      .input("id_funcionario", sql.Int, id_funcionario)
+      .input("dia_semana", sql.TinyInt, diaSemana)
+      .query(`
+        SELECT TOP 1 hora_inicio, hora_fim
+        FROM Horario
+        WHERE id_funcionario = @id_funcionario
+          AND dia_semana = @dia_semana
+      `);
+
+    if (hor.recordset.length === 0) {
+      return res.json({
+        id_funcionario,
+        data,
+        duracaoMin,
+        horarios: [],
+      });
+    }
+
+    const HORA_ABERTURA = hor.recordset[0].hora_inicio.toString().slice(0, 5);
+    const HORA_FECHO = hor.recordset[0].hora_fim.toString().slice(0, 5);
+
+    // 5) Gerar slots (passos de 15 min)
     const STEP_MIN = 15;
     const inicioDia = dateAt(HORA_ABERTURA);
     const fimDia = dateAt(HORA_FECHO);
 
-    // (opcional) se a data for hoje, não sugerir horas no passado
     const agora = new Date();
+    const hojeStr = agora.toISOString().slice(0, 10);
 
     const disponiveis = [];
     for (
@@ -455,10 +468,9 @@ const HORA_FECHO = hor.recordset[0].hora_fim
       const tFim = new Date(t.getTime() + duracaoMin * 60000);
 
       // não permitir no passado se for hoje
-      if (tFim <= agora && data === agora.toISOString().slice(0, 10)) continue;
+      if (data === hojeStr && tFim <= agora) continue;
 
-      // verificar se este slot choca com algum ocupado
-      const choca = ocupados.some(o => sobrepoe(t, tFim, o.ini, o.fim));
+      const choca = ocupados.some((o) => sobrepoe(t, tFim, o.ini, o.fim));
       if (!choca) {
         const hh = String(t.getHours()).padStart(2, "0");
         const mm = String(t.getMinutes()).padStart(2, "0");
@@ -470,9 +482,8 @@ const HORA_FECHO = hor.recordset[0].hora_fim
       id_funcionario,
       data,
       duracaoMin,
-      horarios: disponiveis
+      horarios: disponiveis,
     });
-
   } catch (err) {
     return res.status(500).json({ erro: err.message });
   }
@@ -488,8 +499,9 @@ app.post("/clientes", async (req, res) => {
     }
 
     // 1) Ver se já existe cliente com este telefone
-    const existe = await pool.request()
-      .input("telefone", sql.VarChar, telefone)
+    const existe = await pool
+      .request()
+      .input("telefone", sql.VarChar(30), telefone)
       .query(`
         SELECT TOP 1 id_cliente, nome_cliente
         FROM Clientes
@@ -500,20 +512,17 @@ app.post("/clientes", async (req, res) => {
       return res.json({ ok: true, id_cliente: existe.recordset[0].id_cliente });
     }
 
-    // 2) Criar email "fake" (para cumprir NOT NULL)
-    // Ex: 912345678 -> cliente_912345678@pap.local
+    // 2) Gerar email/senha temporários (podes trocar por registo real depois)
     const emailGerado = `cliente_${telefone.replace(/\s+/g, "")}@pap.local`;
-
-    // 3) Criar senha "fake" (para cumprir NOT NULL)
-    // (não é login real, é só para não deixar a coluna vazia)
     const senhaGerada = `temp_${Math.random().toString(36).slice(2, 10)}`;
 
-    // 4) Inserir cliente e devolver o id
-    const criado = await pool.request()
-    .input("nome", sql.VarChar(100), nome)
-    .input("email", sql.VarChar(255), emailGerado)
-    .input("telefone", sql.VarChar(30), telefone)
-    .input("senha", sql.VarChar(255), senhaGerada)
+    // 3) Inserir cliente e devolver o id
+    const criado = await pool
+      .request()
+      .input("nome", sql.VarChar(150), nome)
+      .input("email", sql.VarChar(150), emailGerado)
+      .input("telefone", sql.VarChar(30), telefone)
+      .input("senha", sql.VarChar(255), senhaGerada)
       .query(`
         INSERT INTO Clientes (nome_cliente, email, telefone, data_registo, senha)
         OUTPUT INSERTED.id_cliente
@@ -521,14 +530,13 @@ app.post("/clientes", async (req, res) => {
       `);
 
     return res.json({ ok: true, id_cliente: criado.recordset[0].id_cliente });
-
   } catch (err) {
     return res.status(500).json({ erro: err.message });
   }
 });
 
-
 /** Arranca o servidor */
 app.listen(PORT, () => {
   console.log(`🚀 Servidor a correr em http://localhost:${PORT}`);
+  console.log(`➡️ Frontend: http://localhost:${PORT}/marcar.html`);
 });
