@@ -410,22 +410,26 @@ app.get("/horarios-disponiveis", async (req, res) => {
     diaSemana = diaSemana === 0 ? 7 : diaSemana;
 
     const hor = await pool
-      .request()
-      .input("id_funcionario", sql.Int, id_funcionario)
-      .input("dia_semana", sql.TinyInt, diaSemana)
-      .query(`
-        SELECT TOP 1 hora_inicio, hora_fim
-        FROM Horario
-        WHERE id_funcionario = @id_funcionario
-          AND dia_semana = @dia_semana
-      `);
+  .request()
+  .input("id_funcionario", sql.Int, id_funcionario)
+  .input("dia_semana", sql.TinyInt, diaSemana)
+  .query(`
+    SELECT TOP 1
+      CONVERT(varchar(5), hora_inicio, 108) AS hora_inicio,
+      CONVERT(varchar(5), hora_fim, 108)   AS hora_fim
+    FROM Horario
+    WHERE id_funcionario = @id_funcionario
+      AND dia_semana = @dia_semana
+  `);
+
 
     if (hor.recordset.length === 0) {
       return res.json({ id_funcionario, data, duracaoMin, horarios: [] });
     }
 
-    const HORA_ABERTURA = hor.recordset[0].hora_inicio.toString().slice(0, 5);
-    const HORA_FECHO = hor.recordset[0].hora_fim.toString().slice(0, 5);
+    const HORA_ABERTURA = hor.recordset[0].hora_inicio;
+    const HORA_FECHO = hor.recordset[0].hora_fim;
+
 
     // gerar slots
     const STEP_MIN = 15;
