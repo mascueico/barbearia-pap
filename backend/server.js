@@ -432,30 +432,42 @@ app.get("/horarios-disponiveis", async (req, res) => {
 
 
     // gerar slots
-    const STEP_MIN = 15;
-    const inicioDia = dateAt(HORA_ABERTURA);
-    const fimDia = dateAt(HORA_FECHO);
+    const STEP_MIN = 30;
 
-    const agora = new Date();
-    const hojeStr = agora.toISOString().slice(0, 10);
+// arredonda para o próximo slot de 30 min
+function roundUpToStep(dateObj, stepMin) {
+  const d = new Date(dateObj);
+  d.setSeconds(0, 0);
+  const m = d.getMinutes();
+  const mod = m % stepMin;
+  if (mod !== 0) d.setMinutes(m + (stepMin - mod));
+  return d;
+}
 
-    const disponiveis = [];
-    for (
-      let t = new Date(inicioDia);
-      t.getTime() + duracaoMin * 60000 <= fimDia.getTime();
-      t = new Date(t.getTime() + STEP_MIN * 60000)
-    ) {
-      const tFim = new Date(t.getTime() + duracaoMin * 60000);
+let t = roundUpToStep(inicioDia, STEP_MIN);
 
-      if (data === hojeStr && tFim <= agora) continue;
+const agora = new Date();
+const hojeStr = agora.toISOString().slice(0, 10);
 
-      const choca = ocupados.some((o) => sobrepoe(t, tFim, o.ini, o.fim));
-      if (!choca) {
-        const hh = String(t.getHours()).padStart(2, "0");
-        const mm = String(t.getMinutes()).padStart(2, "0");
-        disponiveis.push(`${hh}:${mm}`);
-      }
-    }
+const disponiveis = [];
+for (
+  ; t.getTime() + duracaoMin * 60000 <= fimDia.getTime();
+  t = new Date(t.getTime() + STEP_MIN * 60000)
+) {
+  const tFim = new Date(t.getTime() + duracaoMin * 60000);
+
+  // se for hoje, não sugerir horários no passado
+  if (data === hojeStr && tFim <= agora) continue;
+
+  // não pode chocar com ocupados
+  const choca = ocupados.some(o => sobrepoe(t, tFim, o.ini, o.fim));
+  if (!choca) {
+    const hh = String(t.getHours()).padStart(2, "0");
+    const mm = String(t.getMinutes()).padStart(2, "0");
+    disponiveis.push(`${hh}:${mm}`);
+  }
+}
+
 
     return res.json({ id_funcionario, data, duracaoMin, horarios: disponiveis });
   } catch (err) {
