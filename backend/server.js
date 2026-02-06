@@ -351,6 +351,8 @@ app.delete("/agendamentos/:id", async (req, res) => {
  * ==========================
  * /horarios-disponiveis?id_funcionario=1&data=2026-01-14&id_servico=2
  */
+// ✅ HORÁRIOS DISPONÍVEIS (slots de 30 min, duração depende do serviço)
+// Exemplo: /horarios-disponiveis?id_funcionario=3&data=2026-02-05&id_servico=1
 app.get("/horarios-disponiveis", async (req, res) => {
   try {
     const id_funcionario = parseInt(req.query.id_funcionario, 10);
@@ -361,13 +363,19 @@ app.get("/horarios-disponiveis", async (req, res) => {
       return res.status(400).json({ erro: "Faltam parâmetros: id_funcionario e data" });
     }
 
-    // duração do serviço (default 30)
+    /* ==========================
+       1) Duração do serviço
+    ========================== */
     let duracaoMin = 30;
+
     if (id_servico) {
-      const serv = await pool
-        .request()
+      const serv = await pool.request()
         .input("id_servico", sql.Int, id_servico)
-        .query(`SELECT duracao_estimada FROM Servicos WHERE id_servico = @id_servico`);
+        .query(`
+          SELECT duracao_estimada
+          FROM Servicos
+          WHERE id_servico = @id_servico
+        `);
 
       if (serv.recordset.length > 0 && serv.recordset[0].duracao_estimada != null) {
         duracaoMin = parseInt(serv.recordset[0].duracao_estimada, 10);
@@ -375,9 +383,10 @@ app.get("/horarios-disponiveis", async (req, res) => {
       }
     }
 
-    // agendamentos existentes no dia
-    const ags = await pool
-      .request()
+    /* ==========================
+       2) Agendamentos ocupados
+    ========================== */
+    const ags = await pool.request()
       .input("id_funcionario", sql.Int, id_funcionario)
       .input("data", sql.VarChar(10), data)
       .query(`
@@ -391,89 +400,101 @@ app.get("/horarios-disponiveis", async (req, res) => {
           AND (a.status IS NULL OR a.status <> 'Cancelado')
       `);
 
-    const ocupados = ags.recordset.map((r) => {
+    const ocupados = ags.recordset.map(r => {
       const ini = new Date(r.inicio);
       const fim = new Date(ini.getTime() + (parseInt(r.duracao, 10) || 30) * 60000);
       return { ini, fim };
     });
 
-    function dateAt(hhmm) {
-      return new Date(`${data}T${hhmm}:00`);
-    }
     function sobrepoe(aIni, aFim, bIni, bFim) {
       return aIni < bFim && aFim > bIni;
     }
 
-    // ✅ horário do funcionário pela tabela Horario (1=Seg ... 7=Dom)
+    /* ==========================
+       3) Horário do funcionário (tabela Horario)
+       dia_semana: 1=Seg ... 7=Dom
+    ========================== */
     const d = new Date(`${data}T00:00:00`);
     let diaSemana = d.getDay(); // 0=Dom ... 6=Sáb
     diaSemana = diaSemana === 0 ? 7 : diaSemana;
 
-    const hor = await pool
-  .request()
-  .input("id_funcionario", sql.Int, id_funcionario)
-  .input("dia_semana", sql.TinyInt, diaSemana)
-  .query(`
-    SELECT TOP 1
-      CONVERT(varchar(5), hora_inicio, 108) AS hora_inicio,
-      CONVERT(varchar(5), hora_fim, 108)   AS hora_fim
-    FROM Horario
-    WHERE id_funcionario = @id_funcionario
-      AND dia_semana = @dia_semana
-  `);
-
+    const hor = await pool.request()
+      .input("id_funcionario", sql.Int, id_funcionario)
+      .input("dia_semana", sql.TinyInt, diaSemana)
+      .query(`
+        SELECT TOP 1
+          CONVERT(varchar(5), hora_inicio, 108) AS hora_inicio,
+          CONVERT(varchar(5), hora_fim, 108)   AS hora_fim
+        FROM Horario
+        WHERE id_funcionario = @id_funcionario
+          AND dia_semana = @dia_semana
+      `);
 
     if (hor.recordset.length === 0) {
       return res.json({ id_funcionario, data, duracaoMin, horarios: [] });
     }
 
-    const HORA_ABERTURA = hor.recordset[0].hora_inicio;
-    const HORA_FECHO = hor.recordset[0].hora_fim;
+    const HORA_ABERTURA = hor.recordset[0].hora_inicio; // "HH:MM"
+    const HORA_FECHO = hor.recordset[0].hora_fim;       // "HH:MM"
 
+    /* ==========================
+       4) Gerar slots de 30 min (:00 e :30)
+    ========================== */
+    function dateAt(hhmm) {
+      return new Date(`${data}T${hhmm}:00`);
+    }
 
-    // gerar slots
+    function roundUpToStep(dateObj, stepMin) {
+      const x = new Date(dateObj);
+      x.setSeconds(0, 0);
+      const m = x.getMinutes();
+      const mod = m % stepMin;
+      if (mod !== 0) x.setMinutes(m + (stepMin - mod));
+      return x;
+    }
+
     const STEP_MIN = 30;
+    const inicioDia = dateAt(HORA_ABERTURA);
+    const fimDia = dateAt(HORA_FECHO);
 
-// arredonda para o próximo slot de 30 min
-function roundUpToStep(dateObj, stepMin) {
-  const d = new Date(dateObj);
-  d.setSeconds(0, 0);
-  const m = d.getMinutes();
-  const mod = m % stepMin;
-  if (mod !== 0) d.setMinutes(m + (stepMin - mod));
-  return d;
-}
+    let t = roundUpToStep(inicioDia, STEP_MIN);
 
-let t = roundUpToStep(inicioDia, STEP_MIN);
+    const agora = new Date();
+    const hojeStr = agora.toISOString().slice(0, 10);
 
-const agora = new Date();
-const hojeStr = agora.toISOString().slice(0, 10);
+    const disponiveis = [];
 
-const disponiveis = [];
-for (
-  ; t.getTime() + duracaoMin * 60000 <= fimDia.getTime();
-  t = new Date(t.getTime() + STEP_MIN * 60000)
-) {
-  const tFim = new Date(t.getTime() + duracaoMin * 60000);
+    for (
+      ; t.getTime() + duracaoMin * 60000 <= fimDia.getTime();
+      t = new Date(t.getTime() + STEP_MIN * 60000)
+    ) {
+      const tFim = new Date(t.getTime() + duracaoMin * 60000);
 
-  // se for hoje, não sugerir horários no passado
-  if (data === hojeStr && tFim <= agora) continue;
+      // se for hoje, não sugerir horários no passado
+      if (data === hojeStr && tFim <= agora) continue;
 
-  // não pode chocar com ocupados
-  const choca = ocupados.some(o => sobrepoe(t, tFim, o.ini, o.fim));
-  if (!choca) {
-    const hh = String(t.getHours()).padStart(2, "0");
-    const mm = String(t.getMinutes()).padStart(2, "0");
-    disponiveis.push(`${hh}:${mm}`);
-  }
-}
+      // conflitos
+      const choca = ocupados.some(o => sobrepoe(t, tFim, o.ini, o.fim));
+      if (!choca) {
+        const hh = String(t.getHours()).padStart(2, "0");
+        const mm = String(t.getMinutes()).padStart(2, "0");
+        disponiveis.push(`${hh}:${mm}`);
+      }
+    }
 
+    return res.json({
+      id_funcionario,
+      data,
+      duracaoMin,
+      horarios: disponiveis
+    });
 
-    return res.json({ id_funcionario, data, duracaoMin, horarios: disponiveis });
   } catch (err) {
+    console.error("Erro /horarios-disponiveis:", err);
     return res.status(500).json({ erro: err.message });
   }
 });
+
 
 /**
  * ==========================
