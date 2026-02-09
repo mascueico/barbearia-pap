@@ -13,17 +13,22 @@ console.log("✅ marcar.js carregou");
   const btnVerHoras = document.getElementById("btnVerHoras");
   const btnMarcar = document.getElementById("btnMarcar");
 
+  let aMarcar = false; // ✅ bloqueia duplo clique
+
   function setMsg(t) {
-    msg.textContent = t;
+    msg.textContent = t || "";
   }
 
-  // placeholders (assim vês logo se o JS está a mexer nos selects)
+  // placeholders iniciais
   selServicos.innerHTML = `<option value="">-- a carregar serviços --</option>`;
   selFuncionarios.innerHTML = `<option value="">-- a carregar funcionários --</option>`;
   selHora.innerHTML = `<option value="">-- escolhe serviço/funcionário/data --</option>`;
 
+  // ============================
+  // 1) Carregar serviços e funcionários
+  // ============================
   try {
-    // 1) Carregar serviços
+    // Serviços
     const servRes = await fetch("http://localhost:3000/servicos");
     console.log("Status /servicos:", servRes.status);
 
@@ -32,15 +37,15 @@ console.log("✅ marcar.js carregou");
 
     if (!Array.isArray(servicos) || servicos.length === 0) {
       selServicos.innerHTML = `<option value="">(Sem serviços)</option>`;
-      setMsg("⚠️ A API /servicos devolveu vazio. Confirma se estás a ligar à BD certa.");
+      setMsg("⚠️ Sem serviços na BD.");
       return;
     }
 
-    selServicos.innerHTML = servicos
-      .map(s => `<option value="${s.id_servico}">${s.nome_servico}</option>`)
-      .join("");
+    selServicos.innerHTML =
+      `<option value="">-- escolhe um serviço --</option>` +
+      servicos.map(s => `<option value="${s.id_servico}">${s.nome_servico}</option>`).join("");
 
-    // 2) Carregar funcionários
+    // Funcionários
     const funcRes = await fetch("http://localhost:3000/funcionarios");
     console.log("Status /funcionarios:", funcRes.status);
 
@@ -49,13 +54,13 @@ console.log("✅ marcar.js carregou");
 
     if (!Array.isArray(funcs) || funcs.length === 0) {
       selFuncionarios.innerHTML = `<option value="">(Sem funcionários)</option>`;
-      setMsg("⚠️ A API /funcionarios devolveu vazio.");
+      setMsg("⚠️ Sem funcionários na BD.");
       return;
     }
 
-    selFuncionarios.innerHTML = funcs
-      .map(f => `<option value="${f.id_funcionario}">${f.nome_completo}</option>`)
-      .join("");
+    selFuncionarios.innerHTML =
+      `<option value="">-- escolhe um funcionário --</option>` +
+      funcs.map(f => `<option value="${f.id_funcionario}">${f.nome_completo}</option>`).join("");
 
   } catch (e) {
     console.error(e);
@@ -65,10 +70,12 @@ console.log("✅ marcar.js carregou");
     return;
   }
 
-  // 3) Carregar horas disponíveis
+  // ============================
+  // 2) Carregar horas disponíveis
+  // ============================
   async function carregarHorarios() {
     setMsg("");
-    selHora.innerHTML = "";
+    selHora.innerHTML = `<option value="">(A carregar...)</option>`;
 
     const id_servico = selServicos.value;
     const id_funcionario = selFuncionarios.value;
@@ -81,7 +88,12 @@ console.log("✅ marcar.js carregou");
     }
 
     try {
-      const url = `http://localhost:3000/horarios-disponiveis?id_funcionario=${id_funcionario}&data=${data}&id_servico=${id_servico}`;
+      const url =
+        `http://localhost:3000/horarios-disponiveis` +
+        `?id_funcionario=${encodeURIComponent(id_funcionario)}` +
+        `&data=${encodeURIComponent(data)}` +
+        `&id_servico=${encodeURIComponent(id_servico)}`;
+
       const res = await fetch(url);
       const out = await res.json();
 
@@ -97,9 +109,9 @@ console.log("✅ marcar.js carregou");
         return;
       }
 
-      selHora.innerHTML = out.horarios
-        .map(h => `<option value="${h}">${h}</option>`)
-        .join("");
+      selHora.innerHTML =
+        `<option value="">-- escolhe uma hora --</option>` +
+        out.horarios.map(h => `<option value="${h}">${h}</option>`).join("");
 
     } catch (e) {
       console.error(e);
@@ -110,19 +122,20 @@ console.log("✅ marcar.js carregou");
 
   btnVerHoras.addEventListener("click", carregarHorarios);
 
-  // Extra: se mudares serviço/funcionário/data, limpa horas
-  selServicos.addEventListener("change", () => {
+  // Se mudares serviço/funcionário/data, limpa horas
+  function resetHoras() {
     selHora.innerHTML = `<option value="">(Carrega horários)</option>`;
-  });
-  selFuncionarios.addEventListener("change", () => {
-    selHora.innerHTML = `<option value="">(Carrega horários)</option>`;
-  });
-  inputData.addEventListener("change", () => {
-    selHora.innerHTML = `<option value="">(Carrega horários)</option>`;
-  });
+  }
+  selServicos.addEventListener("change", resetHoras);
+  selFuncionarios.addEventListener("change", resetHoras);
+  inputData.addEventListener("change", resetHoras);
 
-  // 4) Criar agendamento
+  // ============================
+  // 3) Criar agendamento
+  // ============================
   btnMarcar.addEventListener("click", async () => {
+    if (aMarcar) return;
+
     setMsg("");
 
     if (!nome.value.trim() || !telefone.value.trim()) {
@@ -135,17 +148,36 @@ console.log("✅ marcar.js carregou");
     const data = inputData.value;
     const hora = selHora.value;
 
-    if (!data || !hora) {
-      setMsg("Escolhe a data e carrega os horários para escolher uma hora.");
+    if (!id_servico || !id_funcionario) {
+      setMsg("Escolhe serviço e funcionário.");
       return;
     }
 
+    if (!data) {
+      setMsg("Escolhe uma data.");
+      return;
+    }
+
+    if (!hora) {
+      setMsg("Escolhe uma hora (carrega horários).");
+      return;
+    }
+
+    const txtOriginal = btnMarcar.textContent;
+
     try {
-      // 4.1) Criar/obter cliente
+      aMarcar = true;
+      btnMarcar.disabled = true;
+      btnMarcar.textContent = "A marcar...";
+
+      // 3.1) Criar/obter cliente
       const resCli = await fetch("http://localhost:3000/clientes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: nome.value.trim(), telefone: telefone.value.trim() })
+        body: JSON.stringify({
+          nome: nome.value.trim(),
+          telefone: telefone.value.trim(),
+        }),
       });
 
       const outCli = await resCli.json();
@@ -156,7 +188,7 @@ console.log("✅ marcar.js carregou");
 
       const id_cliente = outCli.id_cliente;
 
-      // 4.2) Criar agendamento
+      // 3.2) Criar agendamento
       const resAg = await fetch("http://localhost:3000/agendamentos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -166,24 +198,40 @@ console.log("✅ marcar.js carregou");
           id_servico,
           data,
           hora,
-          observacoes: obs.value.trim() || null
-        })
+          observacoes: obs.value.trim() || null,
+        }),
       });
 
       const outAg = await resAg.json();
 
       if (!resAg.ok) {
-        setMsg(outAg.erro || "Erro ao marcar.");
+        if (resAg.status === 409) {
+          setMsg(outAg.erro || "Esse horário acabou de ficar ocupado. Carrega os horários novamente.");
+        } else {
+          setMsg(outAg.erro || "Erro ao marcar.");
+        }
         return;
       }
 
+      // ✅ sucesso
       setMsg("✅ Agendamento criado! Está como Pendente (aguarda confirmação).");
+
+      // limpar observações
       obs.value = "";
+
+      // atualizar lista de horas (para remover a hora ocupada)
+      await carregarHorarios();
+
+      // opcional: limpar a hora selecionada
+      selHora.value = "";
 
     } catch (e) {
       console.error(e);
       setMsg("❌ Erro a comunicar com o servidor.");
+    } finally {
+      aMarcar = false;
+      btnMarcar.disabled = false;
+      btnMarcar.textContent = txtOriginal;
     }
   });
-
 })();
