@@ -32,6 +32,9 @@ const fs = require("fs");
 // IMPORTANTE: msnodesqlv8 para Windows Auth
 const sql = require("mssql/msnodesqlv8");
 
+// Importar serviço de email
+const emailService = require("./emailService");
+
 const app = express();
 const PORT = 3000;
 
@@ -264,7 +267,30 @@ app.post("/agendamentos", async (req, res) => {
       }
     }
 
-    await pool
+    // Obter dados do cliente para email
+    const clienteData = await pool
+      .request()
+      .input("id_cliente", sql.Int, id_cliente)
+      .query(`SELECT nome_cliente, email FROM Clientes WHERE id_cliente = @id_cliente`);
+
+    // Obter dados do funcionário para email
+    const funcData = await pool
+      .request()
+      .input("id_funcionario", sql.Int, id_funcionario)
+      .query(`SELECT nome_completo, email AS email_funcionario FROM Funcionarios WHERE id_funcionario = @id_funcionario`);
+
+    // Obter dados do serviço
+    const servicoData = await pool
+      .request()
+      .input("id_servico", sql.Int, id_servico)
+      .query(`SELECT nome_servico FROM Servicos WHERE id_servico = @id_servico`);
+
+    const cliente = clienteData.recordset[0];
+    const funcionario = funcData.recordset[0];
+    const servico = servicoData.recordset[0];
+
+    // Criar agendamento
+    const result = await pool
       .request()
       .input("id_cliente", sql.Int, id_cliente)
       .input("id_funcionario", sql.Int, id_funcionario)
@@ -275,11 +301,45 @@ app.post("/agendamentos", async (req, res) => {
       .query(`
         INSERT INTO Agendamentos
           (id_cliente, id_funcionario, id_servico, data_hora_agendamento, status, observacoes)
+        OUTPUT INSERTED.id_agendamentos
         VALUES
           (@id_cliente, @id_funcionario, @id_servico, @dataHora, @status, @observacoes)
       `);
 
-    return res.json({ ok: true });
+    const id_agendamento = result.recordset[0].id_agendamentos;
+
+    // Enviar email de confirmação pendente ao cliente
+    if (cliente?.email) {
+      try {
+        await emailService.sendPendingConfirmationEmail(cliente.email, cliente.nome_cliente, {
+          data: new Date(data).toLocaleDateString("pt-PT"),
+          hora: hora,
+          servico: servico?.nome_servico,
+          funcionario: funcionario?.nome_completo,
+        });
+        console.log(`✅ Email pendente enviado para ${cliente.email}`);
+      } catch (emailErr) {
+        console.error(`❌ Erro ao enviar email para cliente:`, emailErr.message);
+      }
+    }
+
+    // Enviar notificação ao barbeiro
+    if (funcionario?.email_funcionario) {
+      try {
+        await emailService.sendBarberNotificationEmail(funcionario.email_funcionario, funcionario.nome_completo, {
+          cliente: cliente?.nome_cliente,
+          data: new Date(data).toLocaleDateString("pt-PT"),
+          hora: hora,
+          servico: servico?.nome_servico,
+          observacoes: observacoes,
+        });
+        console.log(`✅ Email de notificação enviado para barbeiro ${funcionario.email_funcionario}`);
+      } catch (emailErr) {
+        console.error(`❌ Erro ao enviar email para barbeiro:`, emailErr.message);
+      }
+    }
+
+    return res.json({ ok: true, id_agendamento });
   } catch (err) {
     return res.status(500).json({ erro: err.message });
   }
@@ -300,6 +360,26 @@ app.put("/agendamentos/:id/status", async (req, res) => {
       return res.status(400).json({ erro: "Status inválido" });
     }
 
+    // Obter dados do agendamento antes de atualizar
+    const agendamentoData = await pool
+      .request()
+      .input("id", sql.Int, id)
+      .query(`
+        SELECT a.*, c.nome_cliente, c.email, f.nome_completo AS funcionario_nome, s.nome_servico
+        FROM Agendamentos a
+        JOIN Clientes c ON a.id_cliente = c.id_cliente
+        JOIN Funcionarios f ON a.id_funcionario = f.id_funcionario
+        JOIN Servicos s ON a.id_servico = s.id_servico
+        WHERE a.id_agendamentos = @id
+      `);
+
+    if (agendamentoData.recordset.length === 0) {
+      return res.status(404).json({ erro: "Agendamento não encontrado" });
+    }
+
+    const agendamento = agendamentoData.recordset[0];
+    const statusAnterior = agendamento.status;
+
     const result = await pool
       .request()
       .input("id", sql.Int, id)
@@ -312,6 +392,28 @@ app.put("/agendamentos/:id/status", async (req, res) => {
 
     if (result.rowsAffected[0] === 0) {
       return res.status(404).json({ erro: "Agendamento não encontrado" });
+    }
+
+    // Enviar email conforme o novo status
+    if (agendamento.email) {
+      const emailData = {
+        data: new Date(agendamento.data_hora_agendamento).toLocaleDateString("pt-PT"),
+        hora: new Date(agendamento.data_hora_agendamento).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" }),
+        servico: agendamento.nome_servico,
+        funcionario: agendamento.funcionario_nome,
+      };
+
+      try {
+        if (status === "Confirmado") {
+          await emailService.sendConfirmedEmail(agendamento.email, agendamento.nome_cliente, emailData);
+          console.log(`✅ Email de confirmação enviado para ${agendamento.email}`);
+        } else if (status === "Cancelado" && statusAnterior !== "Cancelado") {
+          await emailService.sendCancellationEmail(agendamento.email, agendamento.nome_cliente, emailData);
+          console.log(`✅ Email de cancelamento enviado para ${agendamento.email}`);
+        }
+      } catch (emailErr) {
+        console.error(`❌ Erro ao enviar email de status:`, emailErr.message);
+      }
     }
 
     return res.json({ ok: true });
@@ -500,12 +602,92 @@ app.get("/horarios-disponiveis", async (req, res) => {
 
 /**
  * ==========================
- * CRIAR/OBTER CLIENTE
+ * AGENDAR LEMRETES (Scheduler)
+ * ==========================
+ * Verifica a cada hora se há agendamentos confirmados nas próximas 24h
+ */
+function iniciarSchedulerLembretes() {
+  const INTERVALO_MINUTOS = 60; // verificar a cada hora
+  const HORAS_ANTES = parseInt(process.env.REMINDER_HOURS_BEFORE, 10) || 24;
+
+  console.log(`⏰ Scheduler de lembretes iniciado (${HORAS_ANTES}h antes)`);
+
+  async function verificarLembretes() {
+    try {
+      const agora = new Date();
+      const limite = new Date(agora.getTime() + HORAS_ANTES * 60 * 60 * 1000);
+
+      // Buscar agendamentos confirmados nas próximas X horas que ainda não receberam lembrete
+      const agendamentos = await pool
+        .request()
+        .query(`
+          SELECT TOP 10
+            a.id_agendamentos,
+            c.nome_cliente,
+            c.email,
+            f.nome_completo AS funcionario,
+            s.nome_servico,
+            a.data_hora_agendamento,
+            a.lembrete_enviado
+          FROM Agendamentos a
+          JOIN Clientes c ON a.id_cliente = c.id_cliente
+          JOIN Funcionarios f ON a.id_funcionario = f.id_funcionario
+          JOIN Servicos s ON a.id_servico = s.id_servico
+          WHERE a.status = 'Confirmado'
+            AND a.lembrete_enviado IS NULL
+            AND a.data_hora_agendamento BETWEEN GETDATE() AND @limite
+          ORDER BY a.data_hora_agendamento ASC
+        `);
+
+      if (agendamentos.recordset.length === 0) {
+        return;
+      }
+
+      console.log(`📧 A enviar ${agendamentos.recordset.length} lembretes...`);
+
+      for (const ag of agendamentos.recordset) {
+        try {
+          const dataAgendamento = new Date(ag.data_hora_agendamento);
+          const horasRestantes = Math.round((dataAgendamento - agora) / (1000 * 60 * 60));
+
+          await emailService.sendReminderEmail(ag.email, ag.nome_cliente, {
+            data: dataAgendamento.toLocaleDateString("pt-PT"),
+            hora: dataAgendamento.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" }),
+            servico: ag.nome_servico,
+            funcionario: ag.funcionario,
+          }, horasRestantes);
+
+          // Marcar como enviado
+          await pool
+            .request()
+            .input("id", sql.Int, ag.id_agendamentos)
+            .query(`UPDATE Agendamentos SET lembrete_enviado = GETDATE() WHERE id_agendamentos = @id`);
+
+          console.log(`✅ Lembrete enviado para ${ag.email}`);
+        } catch (err) {
+          console.error(`❌ Erro ao enviar lembrete para ${ag.email}:`, err.message);
+        }
+      }
+    } catch (err) {
+      console.error("❌ Erro no scheduler de lembretes:", err.message);
+    }
+  }
+
+  // Executar imediatamente na inicialização
+  verificarLembretes();
+
+  // Executar a cada intervalo
+  setInterval(verificarLembretes, INTERVALO_MINUTOS * 60 * 1000);
+}
+
+/**
+ * ==========================
+ * AGENDAR / ACTUALIZAR CLIENTE
  * ==========================
  */
 app.post("/clientes", async (req, res) => {
   try {
-    const { nome, telefone } = req.body;
+    const { nome, telefone, email } = req.body;
 
     if (!nome || !telefone) {
       return res.status(400).json({ erro: "Faltam dados do cliente (nome/telefone)" });
@@ -515,17 +697,25 @@ app.post("/clientes", async (req, res) => {
       .request()
       .input("telefone", sql.VarChar(30), telefone)
       .query(`
-        SELECT TOP 1 id_cliente, nome_cliente
+        SELECT TOP 1 id_cliente, nome_cliente, email
         FROM Clientes
         WHERE telefone = @telefone
       `);
 
     if (existe.recordset.length > 0) {
+      // Atualizar email se fornecido
+      if (email && !existe.recordset[0].email) {
+        await pool
+          .request()
+          .input("id_cliente", sql.Int, existe.recordset[0].id_cliente)
+          .input("email", sql.VarChar(150), email)
+          .query(`UPDATE Clientes SET email = @email WHERE id_cliente = @id_cliente`);
+      }
       return res.json({ ok: true, id_cliente: existe.recordset[0].id_cliente });
     }
 
     // email/senha temporários (podes trocar por registo real depois)
-    const emailGerado = `cliente_${telefone.replace(/\s+/g, "")}@pap.local`;
+    const emailGerado = email || `cliente_${telefone.replace(/\s+/g, "")}@pap.local`;
     const senhaGerada = `temp_${Math.random().toString(36).slice(2, 10)}`;
 
     const criado = await pool
@@ -550,4 +740,7 @@ app.post("/clientes", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Servidor a correr em http://localhost:${PORT}`);
   console.log(`➡️ Frontend: http://localhost:${PORT}/marcar.html`);
+  
+  // Iniciar scheduler de lembretes
+  iniciarSchedulerLembretes();
 });

@@ -2,6 +2,7 @@ console.log("✅ marcar.js carregou");
 
 (async function () {
   const nome = document.getElementById("nome");
+  const email = document.getElementById("email");
   const telefone = document.getElementById("telefone");
   const selServicos = document.getElementById("id_servico");
   const selFuncionarios = document.getElementById("id_funcionario");
@@ -143,6 +144,14 @@ console.log("✅ marcar.js carregou");
       return;
     }
 
+    // Validar email (opcional mas recomendado)
+    const emailValue = email.value.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (emailValue && !emailRegex.test(emailValue)) {
+      setMsg("Email inválido.");
+      return;
+    }
+
     const id_servico = Number(selServicos.value);
     const id_funcionario = Number(selFuncionarios.value);
     const data = inputData.value;
@@ -177,6 +186,7 @@ console.log("✅ marcar.js carregou");
         body: JSON.stringify({
           nome: nome.value.trim(),
           telefone: telefone.value.trim(),
+          email: emailValue || null,
         }),
       });
 
