@@ -323,20 +323,20 @@ app.post("/agendamentos", async (req, res) => {
       }
     }
 
-    // Enviar notificação ao barbeiro
-    if (funcionario?.email_funcionario) {
-      try {
-        await emailService.sendBarberNotificationEmail(funcionario.email_funcionario, funcionario.nome_completo, {
-          cliente: cliente?.nome_cliente,
-          data: new Date(data).toLocaleDateString("pt-PT"),
-          hora: hora,
-          servico: servico?.nome_servico,
-          observacoes: observacoes,
-        });
-        console.log(`✅ Email de notificação enviado para barbeiro ${funcionario.email_funcionario}`);
-      } catch (emailErr) {
-        console.error(`❌ Erro ao enviar email para barbeiro:`, emailErr.message);
-      }
+    // Enviar notificação ao barbeiro (sempre para barbeariaflokiko@gmail.com)
+    const barbeiroEmail = "barbeariaflokiko@gmail.com";
+    const barbeiroNome = "Equipe Barbearia Flokiko";
+    try {
+      await emailService.sendBarberNotificationEmail(barbeiroEmail, barbeiroNome, {
+        cliente: cliente?.nome_cliente,
+        data: new Date(data).toLocaleDateString("pt-PT"),
+        hora: hora,
+        servico: servico?.nome_servico,
+        observacoes: observacoes,
+      });
+      console.log(`✅ Email de notificação enviado para barbeiro ${barbeiroEmail}`);
+    } catch (emailErr) {
+      console.error(`❌ Erro ao enviar email para barbeiro:`, emailErr.message);
     }
 
     return res.json({ ok: true, id_agendamento });
@@ -610,16 +610,20 @@ function iniciarSchedulerLembretes() {
   const INTERVALO_MINUTOS = 60; // verificar a cada hora
   const HORAS_ANTES = parseInt(process.env.REMINDER_HOURS_BEFORE, 10) || 24;
 
-  console.log(`⏰ Scheduler de lembretes iniciado (${HORAS_ANTES}h antes)`);
-
   async function verificarLembretes() {
     try {
+      if (!pool) {
+        console.log("⏰ Pool de ligação não está pronto, aguardando...");
+        return;
+      }
+
       const agora = new Date();
       const limite = new Date(agora.getTime() + HORAS_ANTES * 60 * 60 * 1000);
 
       // Buscar agendamentos confirmados nas próximas X horas que ainda não receberam lembrete
       const agendamentos = await pool
         .request()
+        .input("limite", sql.DateTime, limite)
         .query(`
           SELECT TOP 10
             a.id_agendamentos,
@@ -740,7 +744,22 @@ app.post("/clientes", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Servidor a correr em http://localhost:${PORT}`);
   console.log(`➡️ Frontend: http://localhost:${PORT}/marcar.html`);
-  
-  // Iniciar scheduler de lembretes
-  iniciarSchedulerLembretes();
 });
+
+// Iniciar scheduler de lembretes APÓS a ligação à BD
+async function initSchedulerAfterDB() {
+  const INTERVALO_MINUTOS = 60;
+  const HORAS_ANTES = parseInt(process.env.REMINDER_HOURS_BEFORE, 10) || 24;
+  
+  // Esperar que o pool esteja pronto
+  while (!pool) {
+    console.log("⏰ Aguardando ligação à BD...");
+    await new Promise(resolve => setTimeout(resolve, 5000));
+  }
+  
+  console.log(`⏰ Scheduler de lembretes iniciado (${HORAS_ANTES}h antes)`);
+  iniciarSchedulerLembretes();
+}
+
+// Iniciar scheduler após um delay seguro
+setTimeout(initSchedulerAfterDB, 5000);

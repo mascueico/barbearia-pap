@@ -24,7 +24,7 @@ async function sendPendingConfirmationEmail(clienteEmail, clienteNome, agendamen
   const mailOptions = {
     from: process.env.EMAIL_FROM,
     to: clienteEmail,
-    subject: "📅 Agendamento Pendente - Barbearia PAP",
+    subject: "📅 Agendamento Pendente - Barbearia Flokiko",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">Olá, ${clienteNome}!</h2>
@@ -41,7 +41,7 @@ async function sendPendingConfirmationEmail(clienteEmail, clienteNome, agendamen
         <p>Receberás outro email quando o teu agendamento for <strong>confirmado</strong> pelo administrador.</p>
         
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-        <p style="color: #888; font-size: 12px;">Barbearia PAP - Obrigado pela preferência!</p>
+        <p style="color: #888; font-size: 12px;">Barbearia Flokiko - Obrigado pela preferência!</p>
       </div>
     `,
   };
@@ -56,7 +56,7 @@ async function sendConfirmedEmail(clienteEmail, clienteNome, agendamento) {
   const mailOptions = {
     from: process.env.EMAIL_FROM,
     to: clienteEmail,
-    subject: "✅ Agendamento Confirmado - Barbearia PAP",
+    subject: "✅ Agendamento Confirmado - Barbearia Flokiko",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #28a745;">Parabéns, ${clienteNome}!</h2>
@@ -73,7 +73,7 @@ async function sendConfirmedEmail(clienteEmail, clienteNome, agendamento) {
         <p>Por favor, chega <strong>5 minutos antes</strong> do horário marcado.</p>
         
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-        <p style="color: #888; font-size: 12px;">Barbearia PAP - Obrigado pela preferência!</p>
+        <p style="color: #888; font-size: 12px;">Barbearia Flokiko - Obrigado pela preferência!</p>
       </div>
     `,
   };
@@ -105,7 +105,7 @@ async function sendReminderEmail(clienteEmail, clienteNome, agendamento, horasRe
         <p>Não te esqueças de trazer o comprovante de marcação (se aplicável).</p>
         
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-        <p style="color: #888; font-size: 12px;">Barbearia PAP - Obrigado pela preferência!</p>
+        <p style="color: #888; font-size: 12px;">Barbearia Flokiko - Obrigado pela preferência!</p>
       </div>
     `,
   };
@@ -120,7 +120,7 @@ async function sendBarberNotificationEmail(barbeiroEmail, barbeiroNome, agendame
   const mailOptions = {
     from: process.env.EMAIL_FROM,
     to: barbeiroEmail,
-    subject: "📅 Novo Agendamento - Barbearia PAP",
+    subject: "📅 Novo Agendamento - Barbearia Flokiko",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">Olá, ${barbeiroNome}!</h2>
@@ -138,7 +138,7 @@ async function sendBarberNotificationEmail(barbeiroEmail, barbeiroNome, agendame
         <p>Accede ao painel de administração para confirmar ou ajustar o horário.</p>
         
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-        <p style="color: #888; font-size: 12px;">Barbearia PAP - Sistema Automático</p>
+        <p style="color: #888; font-size: 12px;">Barbearia Flokiko - Sistema Automático</p>
       </div>
     `,
   };
@@ -153,7 +153,7 @@ async function sendCancellationEmail(clienteEmail, clienteNome, agendamento) {
   const mailOptions = {
     from: process.env.EMAIL_FROM,
     to: clienteEmail,
-    subject: "❌ Agendamento Cancelado - Barbearia PAP",
+    subject: "❌ Agendamento Cancelado - Barbearia Flokiko",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #dc3545;">Olá, ${clienteNome}!</h2>
@@ -170,7 +170,7 @@ async function sendCancellationEmail(clienteEmail, clienteNome, agendamento) {
         <p>Se quiseres remarcar, visita o nosso site.</p>
         
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-        <p style="color: #888; font-size: 12px;">Barbearia PAP - Obrigado pela preferência!</p>
+        <p style="color: #888; font-size: 12px;">Barbearia Flokiko - Obrigado pela preferência!</p>
       </div>
     `,
   };
