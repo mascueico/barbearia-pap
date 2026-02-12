@@ -2,40 +2,78 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
-  <title>Marcar Agendamento</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marcar Agendamento - Flokiko Barbershop</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <h2>Marcar Agendamento</h2>
+  <header>
+    <h1>FLOKIKO BARBERSHOP</h1>
+    <nav>
+      <a href="index.html">Início</a>
+      <a href="servicos.html">Serviços</a>
+      <a href="marcar.html">Agendamentos</a>
+      <a href="contacto.html">Contacto</a>
+    </nav>
+  </header>
 
-  <label>Nome:</label><br>
-  <input type="text" id="nome" placeholder="Ex: João Silva"><br><br>
+  <main>
+    <h2>Marcar Agendamento</h2>
 
-  <label>Email:</label><br>
-  <input type="email" id="email" placeholder="Ex: joao@email.com"><br><br>
+    <div class="booking-form">
+      <div class="form-group">
+        <label>Nome:</label>
+        <input type="text" id="nome" placeholder="Ex: João Silva">
+      </div>
 
-  <label>Telefone:</label><br>
-  <input type="text" id="telefone" placeholder="Ex: 912345678"><br><br>
+      <div class="form-group">
+        <label>Email:</label>
+        <input type="email" id="email" placeholder="Ex: joao@email.com">
+      </div>
 
-  <label>Serviço:</label><br>
-  <select id="id_servico"></select><br><br>
+      <div class="form-group">
+        <label>Telefone:</label>
+        <input type="text" id="telefone" placeholder="Ex: 912345678">
+      </div>
 
-  <label>Funcionário:</label><br>
-  <select id="id_funcionario"></select><br><br>
+      <div class="form-group">
+        <label>Serviço:</label>
+        <select id="id_servico"></select>
+      </div>
 
-  <label>Data:</label><br>
-  <input type="date" id="data"><br><br>
+      <div class="form-group">
+        <label>Funcionário:</label>
+        <select id="id_funcionario"></select>
+      </div>
 
-  <label>Hora disponível:</label><br>
-  <select id="hora"></select><br><br>
+      <div class="form-group">
+        <label>Data:</label>
+        <input type="date" id="data">
+      </div>
 
-  <label>Observações (opcional):</label><br>
-  <input type="text" id="observacoes" placeholder="Ex: quero degradê"><br><br>
+      <div class="form-group">
+        <label>Hora disponível:</label>
+        <select id="hora"></select>
+      </div>
 
-  <button id="btnVerHoras" type="button">Ver horários disponíveis</button>
-  <button id="btnMarcar" type="button">Marcar</button>
+      <div class="form-group">
+        <label>Observações (opcional):</label>
+        <input type="text" id="observacoes" placeholder="Ex: quero degradê">
+      </div>
 
-  <p id="msg"></p>
+      <div class="form-buttons">
+        <button id="btnVerHoras" type="button" class="btn btn-secondary">Ver Horários</button>
+        <button id="btnMarcar" type="button" class="btn btn-primary">Marcar</button>
+      </div>
 
-  <script src="js/marcar.js"></script>
+      <p id="msg"></p>
+    </div>
+
+    <script src="js/marcar.js"></script>
+  </main>
+
+  <footer>
+    <p>&copy; 2024 Flokiko Barbershop. Todos os direitos reservados.</p>
+  </footer>
 </body>
 </html>
