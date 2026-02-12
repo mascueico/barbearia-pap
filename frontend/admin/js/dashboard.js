@@ -111,7 +111,6 @@
           <td>
             <button class="btn btn-confirmar" data-acao="status" data-id="${id}" data-status="Confirmado">Confirmar</button>
             <button class="btn btn-cancelar"  data-acao="status" data-id="${id}" data-status="Cancelado">Cancelar</button>
-            <button class="btn"              data-acao="status" data-id="${id}" data-status="Pendente">Pendente</button>
             <button class="btn"              data-acao="apagar" data-id="${id}">Apagar</button>
           </td>
         </tr>

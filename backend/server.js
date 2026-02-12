@@ -355,7 +355,7 @@ app.put("/agendamentos/:id/status", async (req, res) => {
     const id = parseInt(req.params.id, 10);
     const { status } = req.body;
 
-    const allowed = ["Pendente", "Confirmado", "Cancelado"];
+    const allowed = ["Confirmado", "Cancelado"];
     if (!allowed.includes(status)) {
       return res.status(400).json({ erro: "Status inválido" });
     }
