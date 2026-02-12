@@ -359,7 +359,14 @@ footer {
   color: #fff;
   text-align: center;
   padding: 2rem;
-  margin-top: 4rem;
+  margin-top: auto;
+}
+
+/* Main Container Styles */
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 footer p {
@@ -428,13 +435,120 @@ footer p {
   .service-card,
   .contact-info,
   .location,
-  .booking-form {
+  .booking-form,
+  .barber-card {
     padding: 1.5rem;
   }
 
   .price {
     font-size: 1.5rem;
   }
+
+  .barbers-container {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .barber-image {
+    height: 250px;
+  }
+}
+
+/* Barbers Page Styles */
+.barbers-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2.5rem;
+  margin-top: 3rem;
+}
+
+.barber-card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e0e0e0;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.barber-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  border-color: #d0d0d0;
+}
+
+.barber-image {
+  width: 100%;
+  height: 300px;
+  overflow: hidden;
+  background: #f0f0f0;
+}
+
+.barber-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.barber-card:hover .barber-image img {
+  transform: scale(1.05);
+}
+
+.barber-info {
+  padding: 2rem 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.barber-info h3 {
+  color: #1a1a1a;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+  text-align: center;
+}
+
+.barber-role {
+  color: #666;
+  font-size: 1rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.barber-description {
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  flex: 1;
+  text-align: center;
+}
+
+.barber-services {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: auto;
+}
+
+.barber-services span {
+  background: #f0f0f0;
+  color: #666;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.barber-services span:hover {
+  background: #1a1a1a;
+  color: #fff;
 }
 
 /* Smooth Scroll */
