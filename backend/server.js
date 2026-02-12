@@ -130,6 +130,101 @@ app.post("/login", async (req, res) => {
 });
 
 /**
+ * =========================
+ * REGISTO DE UTILIZADOR (CLIENTE)
+ * =========================
+ */
+app.post("/register", async (req, res) => {
+  try {
+    const { nome, email, telefone, palavra_passe } = req.body;
+
+    if (!nome || !email || !telefone || !palavra_passe) {
+      return res.status(400).json({ erro: "Todos os campos são obrigatórios" });
+    }
+
+    // Verificar se o email já existe
+    const existingUser = await pool
+      .request()
+      .input("email", sql.NVarChar(255), email)
+      .query(`
+        SELECT id_cliente
+        FROM Clientes
+        WHERE email = @email
+      `);
+
+    if (existingUser.recordset.length > 0) {
+      return res.status(409).json({ erro: "Email já registrado" });
+    }
+
+    // Criar novo cliente
+    const result = await pool
+      .request()
+      .input("nome", sql.NVarChar(255), nome)
+      .input("email", sql.NVarChar(255), email)
+      .input("telefone", sql.NVarChar(20), telefone)
+      .input("palavra_passe", sql.NVarChar(255), palavra_passe)
+      .query(`
+        INSERT INTO Clientes (nome_cliente, email, telefone, palavra_passe)
+        OUTPUT INSERTED.id_cliente, INSERTED.nome_cliente, INSERTED.email
+        VALUES (@nome, @email, @telefone, @palavra_passe)
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(500).json({ erro: "Erro ao criar utilizador" });
+    }
+
+    const newUser = result.recordset[0];
+    return res.json({ 
+      ok: true, 
+      cliente: {
+        id_cliente: newUser.id_cliente,
+        nome_cliente: newUser.nome_cliente,
+        email: newUser.email
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ erro: err.message });
+  }
+});
+
+/**
+ * =========================
+ * LOGIN DE UTILIZADOR (CLIENTE)
+ * =========================
+ */
+app.post("/cliente/login", async (req, res) => {
+  try {
+    const { email, password, palavra_passe } = req.body;
+    const pass = password ?? palavra_passe;
+
+    if (!email || !pass) {
+      return res.status(400).json({ erro: "Faltam credenciais" });
+    }
+
+    const result = await pool
+      .request()
+      .input("email", sql.NVarChar(255), email)
+      .input("pass", sql.NVarChar(255), pass)
+      .query(`
+        SELECT id_cliente, nome_cliente, email, telefone
+        FROM Clientes
+        WHERE email = @email AND palavra_passe = @pass
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(401).json({ erro: "Email ou palavra-passe incorretos" });
+    }
+
+    return res.json({ 
+      ok: true, 
+      cliente: result.recordset[0]
+    });
+  } catch (err) {
+    return res.status(500).json({ erro: err.message });
+  }
+});
+
+/**
  * ======================
  * LISTAR SERVIÇOS
  * ======================

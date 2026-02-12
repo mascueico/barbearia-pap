@@ -4,7 +4,101 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Marcar Agendamento - Flokiko Barbershop</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    .user-info {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .user-info .user-details {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .user-info .user-avatar {
+      width: 40px;
+      height: 40px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .user-info .user-name {
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .user-info .logout-btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .user-info .logout-btn:hover {
+      background: rgba(255,255,255,0.3);
+      transform: translateY(-2px);
+    }
+
+    .login-prompt {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      margin-bottom: 20px;
+      border: 1px solid #f5c6cb;
+    }
+
+    .login-prompt h3 {
+      margin: 0 0 10px 0;
+    }
+
+    .login-prompt p {
+      margin: 0 0 15px 0;
+    }
+
+    .login-prompt .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .login-prompt .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    @media (max-width: 768px) {
+      .user-info {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+      }
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -21,7 +115,10 @@
   <main>
     <h2>Marcar Agendamento</h2>
 
-    <div class="booking-form">
+    <!-- User Info / Login Prompt -->
+    <div id="user-info-container"></div>
+
+    <div class="booking-form" id="booking-form">
       <div class="form-group">
         <label>Nome:</label>
         <input type="text" id="nome" placeholder="Ex: João Silva">

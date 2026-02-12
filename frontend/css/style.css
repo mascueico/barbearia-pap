@@ -63,6 +63,24 @@ nav a:hover::after {
   width: 100%;
 }
 
+/* Login Link Styles */
+nav a.login-link {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 0.5rem 1.5rem;
+  border-radius: 25px;
+  transition: all 0.3s ease;
+}
+
+nav a.login-link:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+nav a.login-link::after {
+  display: none;
+}
+
 /* Main Content Styles */
 main {
   padding: 3rem 2rem;
