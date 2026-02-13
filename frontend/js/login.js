@@ -148,6 +148,23 @@ function getLoggedInUser() {
     return userData ? JSON.parse(userData) : null;
 }
 
+// Toggle password visibility
+function togglePasswordVisibility(passwordId, toggleId) {
+    console.log("Toggle function called");
+    const passwordInput = document.getElementById(passwordId);
+    const toggleIcon = document.getElementById(toggleId);
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.classList.remove('fa-eye');
+        toggleIcon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        toggleIcon.classList.remove('fa-eye-slash');
+        toggleIcon.classList.add('fa-eye');
+    }
+}
+
 // Logout function (can be called from other pages)
 function logout() {
     localStorage.removeItem('loggedInUser');
