@@ -37,6 +37,8 @@ async function handleLogin(event) {
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
 
+    console.log('Login attempt with:', email);
+
     try {
         const response = await fetch('/cliente/login', {
             method: 'POST',
@@ -45,15 +47,17 @@ async function handleLogin(event) {
             },
             body: JSON.stringify({
                 email: email,
-                palavra_passe: password
+                senha: password
             })
         });
 
         const data = await response.json();
+        console.log('Login response:', data);
 
         if (data.ok) {
             // Save user data to localStorage
             localStorage.setItem('loggedInUser', JSON.stringify(data.cliente));
+            console.log('User saved to localStorage:', data.cliente);
             
             showAlert('Login realizado com sucesso!', 'success');
             
@@ -103,7 +107,7 @@ async function handleRegister(event) {
                 nome: name,
                 email: email,
                 telefone: phone,
-                palavra_passe: password
+                senha: password
             })
         });
 

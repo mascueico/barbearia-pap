@@ -136,9 +136,10 @@ app.post("/login", async (req, res) => {
  */
 app.post("/register", async (req, res) => {
   try {
-    const { nome, email, telefone, palavra_passe } = req.body;
+    const { nome, email, telefone, palavra_passe, senha } = req.body;
+    const pass = palavra_passe ?? senha;
 
-    if (!nome || !email || !telefone || !palavra_passe) {
+    if (!nome || !email || !telefone || !pass) {
       return res.status(400).json({ erro: "Todos os campos são obrigatórios" });
     }
 
@@ -156,18 +157,38 @@ app.post("/register", async (req, res) => {
       return res.status(409).json({ erro: "Email já registrado" });
     }
 
+    // Verificar se a coluna palavra_passe existe na tabela Clientes
+    const checkColumnResult = await pool.request().query(`
+      SELECT COUNT(*) AS columnCount
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_NAME = 'Clientes' AND COLUMN_NAME = 'palavra_passe'
+    `);
+
+    const hasPalavraPasseColumn = checkColumnResult.recordset[0].columnCount > 0;
+
+    let query;
+    if (hasPalavraPasseColumn) {
+      query = `
+        INSERT INTO Clientes (nome_cliente, email, telefone, palavra_passe)
+        OUTPUT INSERTED.id_cliente, INSERTED.nome_cliente, INSERTED.email
+        VALUES (@nome, @email, @telefone, @pass)
+      `;
+    } else {
+      query = `
+        INSERT INTO Clientes (nome_cliente, email, telefone, senha)
+        OUTPUT INSERTED.id_cliente, INSERTED.nome_cliente, INSERTED.email
+        VALUES (@nome, @email, @telefone, @pass)
+      `;
+    }
+
     // Criar novo cliente
     const result = await pool
       .request()
       .input("nome", sql.NVarChar(255), nome)
       .input("email", sql.NVarChar(255), email)
       .input("telefone", sql.NVarChar(20), telefone)
-      .input("palavra_passe", sql.NVarChar(255), palavra_passe)
-      .query(`
-        INSERT INTO Clientes (nome_cliente, email, telefone, palavra_passe)
-        OUTPUT INSERTED.id_cliente, INSERTED.nome_cliente, INSERTED.email
-        VALUES (@nome, @email, @telefone, @palavra_passe)
-      `);
+      .input("pass", sql.NVarChar(255), pass)
+      .query(query);
 
     if (result.recordset.length === 0) {
       return res.status(500).json({ erro: "Erro ao criar utilizador" });
@@ -194,22 +215,42 @@ app.post("/register", async (req, res) => {
  */
 app.post("/cliente/login", async (req, res) => {
   try {
-    const { email, password, palavra_passe } = req.body;
-    const pass = password ?? palavra_passe;
+    const { email, password, palavra_passe, senha } = req.body;
+    const pass = password ?? palavra_passe ?? senha;
 
     if (!email || !pass) {
       return res.status(400).json({ erro: "Faltam credenciais" });
+    }
+
+    // Verificar se a coluna palavra_passe existe na tabela Clientes
+    const checkColumnResult = await pool.request().query(`
+      SELECT COUNT(*) AS columnCount
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_NAME = 'Clientes' AND COLUMN_NAME = 'palavra_passe'
+    `);
+
+    const hasPalavraPasseColumn = checkColumnResult.recordset[0].columnCount > 0;
+
+    let query;
+    if (hasPalavraPasseColumn) {
+      query = `
+        SELECT id_cliente, nome_cliente, email, telefone
+        FROM Clientes
+        WHERE email = @email AND palavra_passe = @pass
+      `;
+    } else {
+      query = `
+        SELECT id_cliente, nome_cliente, email, telefone
+        FROM Clientes
+        WHERE email = @email AND senha = @pass
+      `;
     }
 
     const result = await pool
       .request()
       .input("email", sql.NVarChar(255), email)
       .input("pass", sql.NVarChar(255), pass)
-      .query(`
-        SELECT id_cliente, nome_cliente, email, telefone
-        FROM Clientes
-        WHERE email = @email AND palavra_passe = @pass
-      `);
+      .query(query);
 
     if (result.recordset.length === 0) {
       return res.status(401).json({ erro: "Email ou palavra-passe incorretos" });

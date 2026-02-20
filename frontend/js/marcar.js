@@ -245,6 +245,17 @@ function logout() {
       btnMarcar.disabled = true;
       btnMarcar.textContent = "A marcar...";
 
+      console.log('Creating appointment with data:', {
+        nome: nome.value.trim(),
+        telefone: telefone.value.trim(),
+        email: emailValue,
+        id_servico,
+        id_funcionario,
+        data,
+        hora,
+        observacoes: obs.value.trim()
+      });
+
       // 3.1) Criar/obter cliente
       const resCli = await fetch("http://localhost:3000/clientes", {
         method: "POST",
@@ -257,12 +268,15 @@ function logout() {
       });
 
       const outCli = await resCli.json();
+      console.log('Client response:', resCli.status, outCli);
+      
       if (!resCli.ok) {
         setMsg(outCli.erro || "Erro ao criar cliente.");
         return;
       }
 
       const id_cliente = outCli.id_cliente;
+      console.log('Client ID:', id_cliente);
 
       // 3.2) Criar agendamento
       const resAg = await fetch("http://localhost:3000/agendamentos", {
@@ -279,6 +293,7 @@ function logout() {
       });
 
       const outAg = await resAg.json();
+      console.log('Appointment response:', resAg.status, outAg);
 
       if (!resAg.ok) {
         if (resAg.status === 409) {
@@ -302,7 +317,7 @@ function logout() {
       selHora.value = "";
 
     } catch (e) {
-      console.error(e);
+      console.error('Error:', e);
       setMsg("❌ Erro a comunicar com o servidor.");
     } finally {
       aMarcar = false;
