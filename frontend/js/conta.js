@@ -60,10 +60,6 @@ function loadUserProfile() {
             <div class="info-label">Telefone</div>
             <div class="info-value">${loggedInUser.telefone || 'Não informado'}</div>
         </div>
-        <div class="info-item">
-            <div class="info-label">ID do Cliente</div>
-            <div class="info-value">#${loggedInUser.id_cliente}</div>
-        </div>
     `;
 }
 
