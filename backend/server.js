@@ -310,7 +310,9 @@ app.get("/funcionarios", async (req, res) => {
  */
 app.get("/agendamentos", async (req, res) => {
   try {
-    const result = await pool.request().query(`
+    const { cliente } = req.query;
+    
+    let query = `
       SELECT
         a.id_agendamentos,
         c.nome_cliente  AS cliente,
@@ -324,8 +326,18 @@ app.get("/agendamentos", async (req, res) => {
       JOIN Clientes c ON a.id_cliente = c.id_cliente
       JOIN Funcionarios f ON a.id_funcionario = f.id_funcionario
       JOIN Servicos s ON a.id_servico = s.id_servico
-      ORDER BY a.data_hora_agendamento DESC
-    `);
+    `;
+    
+    const request = pool.request();
+    
+    if (cliente) {
+      query += ` WHERE a.id_cliente = @cliente`;
+      request.input("cliente", sql.Int, parseInt(cliente));
+    }
+    
+    query += ` ORDER BY a.data_hora_agendamento DESC`;
+    
+    const result = await request.query(query);
 
     return res.json(result.recordset);
   } catch (err) {
