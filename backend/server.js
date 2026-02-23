@@ -827,13 +827,18 @@ function iniciarSchedulerLembretes() {
  */
 app.post("/clientes", async (req, res) => {
   try {
+    console.log('Received /clientes request:', req.body);
+
     const { nome, telefone, email } = req.body;
 
     if (!nome || !telefone) {
       return res.status(400).json({ erro: "Faltam dados do cliente (nome/telefone)" });
     }
 
-    const existe = await pool
+    let existe = null;
+
+    // Verificar cliente por telefone
+    existe = await pool
       .request()
       .input("telefone", sql.VarChar(30), telefone)
       .query(`
@@ -842,8 +847,24 @@ app.post("/clientes", async (req, res) => {
         WHERE telefone = @telefone
       `);
 
+    console.log('Client exists by phone result:', existe.recordset);
+
+    if (existe.recordset.length === 0 && email) {
+      // Verificar cliente por email
+      existe = await pool
+        .request()
+        .input("email", sql.VarChar(150), email)
+        .query(`
+          SELECT TOP 1 id_cliente, nome_cliente, email
+          FROM Clientes
+          WHERE email = @email
+        `);
+
+      console.log('Client exists by email result:', existe.recordset);
+    }
+
     if (existe.recordset.length > 0) {
-      // Atualizar email se fornecido
+      // Atualizar email se fornecido e não existir
       if (email && !existe.recordset[0].email) {
         await pool
           .request()
@@ -870,8 +891,11 @@ app.post("/clientes", async (req, res) => {
         VALUES (@nome, @email, @telefone, GETDATE(), @senha)
       `);
 
+    console.log('Client created:', criado.recordset);
+
     return res.json({ ok: true, id_cliente: criado.recordset[0].id_cliente });
   } catch (err) {
+    console.error('Error in /clientes endpoint:', err);
     return res.status(500).json({ erro: err.message });
   }
 });
