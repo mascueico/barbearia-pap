@@ -366,6 +366,41 @@ app.post("/agendamentos", async (req, res) => {
       return res.status(400).json({ erro: "Data/Hora inválidas" });
     }
 
+    // Check if booking time is in the past
+    const now = new Date();
+    const [year, month, day] = data.split('-').map(Number);
+    const bookingDate = new Date(Date.UTC(year, month - 1, day));
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    
+    console.log('=== Date Validation ===');
+    console.log('Data string:', data);
+    console.log('Parsed booking date:', bookingDate);
+    console.log('Today:', today);
+    console.log('Booking date < Today:', bookingDate < today);
+    
+    // Check if the booking date is in the past
+    if (bookingDate < today) {
+      console.log('Rejecting past date:', data);
+      return res.status(400).json({ erro: "Não pode marcar para uma data passada" });
+    }
+    
+    // Check if the booking time is in the past on the same day
+    if (bookingDate.toISOString().split('T')[0] === today.toISOString().split('T')[0]) {
+      const [bookHours, bookMinutes] = hora.split(':').map(Number);
+      const nowHours = now.getUTCHours();
+      const nowMinutes = now.getUTCMinutes();
+      
+      console.log('=== Time Validation ===');
+      console.log('Booking time:', `${bookHours}:${bookMinutes}`);
+      console.log('Current time:', `${nowHours}:${nowMinutes}`);
+      
+      if (bookHours < nowHours || (bookHours === nowHours && bookMinutes < nowMinutes)) {
+        console.log('Rejecting past time:', `${bookHours}:${bookMinutes}`);
+        return res.status(400).json({ erro: "Não pode marcar para um horário passado" });
+      }
+    }
+
     // duração do serviço
     const serv = await pool
       .request()
@@ -672,6 +707,12 @@ app.get("/horarios-disponiveis", async (req, res) => {
     let diaSemana = d.getDay(); // 0=Dom ... 6=Sáb
     diaSemana = diaSemana === 0 ? 7 : diaSemana;
 
+    // Descomente a linha abaixo para ignorar a tabela Horario e usar horários fixos
+    const HORA_ABERTURA = "10:00"; // Horário de abertura (10h)
+    const HORA_FECHO = "19:30";   // Horário de fechamento (19h30)
+
+    /* 
+    // Código original que usa a tabela Horario
     const hor = await pool.request()
       .input("id_funcionario", sql.Int, id_funcionario)
       .input("dia_semana", sql.TinyInt, diaSemana)
@@ -690,6 +731,7 @@ app.get("/horarios-disponiveis", async (req, res) => {
 
     const HORA_ABERTURA = hor.recordset[0].hora_inicio; // "HH:MM"
     const HORA_FECHO = hor.recordset[0].hora_fim;       // "HH:MM"
+    */
 
     /* ==========================
        4) Gerar slots de 30 min (:00 e :30)
@@ -724,8 +766,8 @@ app.get("/horarios-disponiveis", async (req, res) => {
     ) {
       const tFim = new Date(t.getTime() + duracaoMin * 60000);
 
-      // se for hoje, não sugerir horários no passado
-      if (data === hojeStr && tFim <= agora) continue;
+       // se for hoje, não sugerir horários no passado
+       if (data === hojeStr && t <= agora) continue;
 
       // conflitos
       const choca = ocupados.some(o => sobrepoe(t, tFim, o.ini, o.fim));

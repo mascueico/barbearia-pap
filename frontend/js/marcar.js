@@ -1,5 +1,9 @@
 console.log("✅ marcar.js carregou");
 
+// Set minimum date to today
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('data').setAttribute('min', today);
+
 // Get logged in user from localStorage
 function getLoggedInUser() {
   const userData = localStorage.getItem('loggedInUser');
@@ -235,6 +239,14 @@ function logout() {
 
     if (!hora) {
       setMsg("Escolhe uma hora (carrega horários).");
+      return;
+    }
+
+    // Check if booking time is in the past
+    const bookingDateTime = new Date(`${data}T${hora}:00`);
+    const now = new Date();
+    if (bookingDateTime < now) {
+      setMsg("Não pode marcar para um horário passado.");
       return;
     }
 
