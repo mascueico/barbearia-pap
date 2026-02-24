@@ -40,7 +40,7 @@ async function handleLogin(event) {
     console.log('Login attempt with:', email);
 
     try {
-        const response = await fetch('/cliente/login', {
+        const response = await fetch('http://localhost:3000/cliente/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -98,7 +98,7 @@ async function handleRegister(event) {
     }
 
     try {
-        const response = await fetch('/register', {
+        const response = await fetch('http://localhost:3000/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

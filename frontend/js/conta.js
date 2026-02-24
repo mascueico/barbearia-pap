@@ -68,7 +68,7 @@ async function loadUserBookings() {
     const loggedInUser = getLoggedInUser();
     
     try {
-        const response = await fetch(`/agendamentos?cliente=${loggedInUser.id_cliente}`);
+        const response = await fetch(`http://localhost:3000/agendamentos?cliente=${loggedInUser.id_cliente}`);
         const bookings = await response.json();
         
         displayBookings(bookings);
