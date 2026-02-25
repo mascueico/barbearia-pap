@@ -707,12 +707,7 @@ app.get("/horarios-disponiveis", async (req, res) => {
     let diaSemana = d.getDay(); // 0=Dom ... 6=Sáb
     diaSemana = diaSemana === 0 ? 7 : diaSemana;
 
-    // Descomente a linha abaixo para ignorar a tabela Horario e usar horários fixos
-    const HORA_ABERTURA = "10:00"; // Horário de abertura (10h)
-    const HORA_FECHO = "19:30";   // Horário de fechamento (19h30)
-
-    /* 
-    // Código original que usa a tabela Horario
+    // Usar a tabela Horario para obter o horário do funcionário
     const hor = await pool.request()
       .input("id_funcionario", sql.Int, id_funcionario)
       .input("dia_semana", sql.TinyInt, diaSemana)
@@ -731,7 +726,6 @@ app.get("/horarios-disponiveis", async (req, res) => {
 
     const HORA_ABERTURA = hor.recordset[0].hora_inicio; // "HH:MM"
     const HORA_FECHO = hor.recordset[0].hora_fim;       // "HH:MM"
-    */
 
     /* ==========================
        4) Gerar slots de 30 min (:00 e :30)

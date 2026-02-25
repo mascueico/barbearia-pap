@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste Funcionários</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .barber {
+      margin: 10px 0;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background: #f9f9f9;
+    }
+    .barber h3 {
+      margin: 0 0 5px 0;
+      color: #666;
+    }
+    .barber p {
+      margin: 0;
+      color: #888;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #764ba2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Funcionários Disponíveis</h1>
+    <button onclick="loadBarbers()">Carregar Funcionários</button>
+    <div id="barbers-container"></div>
+  </div>
+
+  <script>
+    async function loadBarbers() {
+      try {
+        console.log('Iniciando carregamento de funcionários...');
+        const response = await fetch('http://localhost:3000/funcionarios');
+        console.log('Resposta do servidor:', response);
+        const barbers = await response.json();
+        console.log('Funcionários recebidos:', JSON.stringify(barbers, null, 2));
+        const container = document.getElementById('barbers-container');
+        container.innerHTML = '';
+        
+        barbers.forEach(barber => {
+          const div = document.createElement('div');
+          div.className = 'barber';
+          div.innerHTML = `
+            <h3>${barber.nome_completo} (id: ${barber.id_funcionario})</h3>
+            <p>${barber.especialidade}</p>
+            <p>Email: ${barber.email}</p>
+            <p>Telefone: ${barber.telefone}</p>
+          `;
+          container.appendChild(div);
+        });
+      } catch (error) {
+        console.error('Erro:', error);
+        const container = document.getElementById('barbers-container');
+        container.innerHTML = `<p style="color: red;">Erro ao carregar funcionários: ${error.message}</p>`;
+      }
+    }
+  </script>
+</body>
+</html>

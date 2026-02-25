@@ -1,76 +1,10 @@
-console.log("✅ marcar.js carregou");
+console.log("✅ marcar-temp.js carregou");
 
 // Set minimum date to today
 const today = new Date().toISOString().split('T')[0];
 document.getElementById('data').setAttribute('min', today);
 
-// Get logged in user from localStorage
-function getLoggedInUser() {
-  const userData = localStorage.getItem('loggedInUser');
-  return userData ? JSON.parse(userData) : null;
-}
-
-// Display user info or login prompt
-function displayUserInfo() {
-  const user = getLoggedInUser();
-  const userInfoContainer = document.getElementById('user-info-container');
-  const bookingForm = document.getElementById('booking-form');
-
-  if (user) {
-    // User is logged in
-    userInfoContainer.innerHTML = `
-      <div class="user-info">
-        <div class="user-details">
-          <div class="user-avatar">
-            <i class="fas fa-user"></i>
-          </div>
-          <div class="user-name">Olá, ${user.nome_cliente}</div>
-        </div>
-        <button class="logout-btn" onclick="logout()">
-          <i class="fas fa-sign-out-alt"></i> Sair
-        </button>
-      </div>
-    `;
-    // Fill in user information in the form
-    document.getElementById('nome').value = user.nome_cliente;
-    document.getElementById('email').value = user.email;
-    document.getElementById('telefone').value = user.telefone;
-    // Disable editing user info
-    document.getElementById('nome').disabled = true;
-    document.getElementById('email').disabled = true;
-    document.getElementById('telefone').disabled = true;
-  } else {
-    // User is not logged in
-    userInfoContainer.innerHTML = `
-      <div class="login-prompt">
-        <h3><i class="fas fa-lock"></i> Área restrita</h3>
-        <p>Para fazer uma marcação, precisa de estar registado e autenticado.</p>
-        <a href="login.html" class="btn">
-          <i class="fas fa-sign-in-alt"></i> Login / Registar
-        </a>
-      </div>
-    `;
-    // Disable form
-    bookingForm.style.display = 'none';
-  }
-}
-
-// Logout function
-function logout() {
-  localStorage.removeItem('loggedInUser');
-  window.location.href = 'login.html';
-}
-
 (async function () {
-  // Display user info or login prompt
-  displayUserInfo();
-
-  // Check if user is logged in before continuing
-  const user = getLoggedInUser();
-  if (!user) {
-    return;
-  }
-
   const nome = document.getElementById("nome");
   const email = document.getElementById("email");
   const telefone = document.getElementById("telefone");
@@ -132,7 +66,15 @@ function logout() {
     selFuncionarios.innerHTML =
       `<option value="">-- escolhe um funcionário --</option>` +
       funcs.map(f => `<option value="${f.id_funcionario}">${f.nome_completo}</option>`).join("");
-    console.log('Opções do dropdown de funcionários:', Array.from(selFuncionarios.options).map(option => ({ value: option.value, text: option.text })));
+    
+    // Display functionaries as a list
+    const funcionariosListDiv = document.getElementById('funcionarios-list');
+    funcionariosListDiv.innerHTML = '<h3>Funcionários Disponíveis:</h3>';
+    funcs.forEach(func => {
+      const p = document.createElement('p');
+      p.textContent = `${func.nome_completo} (ID: ${func.id_funcionario}) - ${func.especialidade}`;
+      funcionariosListDiv.appendChild(p);
+    });
 
   } catch (e) {
     console.error(e);

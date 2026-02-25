@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Dropdown</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        select {
+            padding: 10px;
+            width: 300px;
+            margin-bottom: 20px;
+        }
+        #barbers-list {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Teste Barbeiros</h1>
+    <label for="id_funcionario">Barbeiro:</label>
+    <select id="id_funcionario">
+        <option value="">-- Carregando --</option>
+    </select>
+    
+    <div id="barbers-list"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('✅ dropdown-test.js carregou');
+            
+            const selFuncionarios = document.getElementById("id_funcionario");
+            
+            // Carregar funcionários
+            try {
+                const res = await fetch("/funcionarios");
+                if (!res.ok) throw new Error(`Erro na API funcionarios: ${res.status}`);
+                const funcionarios = await res.json();
+                console.log('Funcionários carregados:', funcionarios);
+                
+                // Preencher dropdown
+                selFuncionarios.innerHTML = `<option value="">-- selecione barbeiro --</option>`;
+                for (const f of funcionarios) {
+                    selFuncionarios.innerHTML += `<option value="${f.id_funcionario}">${f.nome_funcionario}</option>`;
+                }
+                
+                // Listar barbeiros na página
+                const listDiv = document.getElementById("barbers-list");
+                listDiv.innerHTML = `<h3>Funcionários disponíveis:</h3>`;
+                funcionarios.forEach(f => {
+                    listDiv.innerHTML += `<p>${f.id_funcionario}: ${f.nome_funcionario}</p>`;
+                });
+            } catch (err) {
+                console.error(err);
+                selFuncionarios.innerHTML = `<option value="">Erro ao carregar</option>`;
+            }
+        });
+    </script>
+</body>
+</html>
