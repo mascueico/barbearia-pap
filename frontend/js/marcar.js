@@ -12,6 +12,7 @@ function getLoggedInUser() {
 
 // Display user info or login prompt
 function displayUserInfo() {
+    console.log('displayUserInfo() called');
   const user = getLoggedInUser();
   const userInfoContainer = document.getElementById('user-info-container');
   const bookingForm = document.getElementById('booking-form');

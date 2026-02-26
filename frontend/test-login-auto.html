@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Login Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Auto Login Test</h1>
+
+    <button id="btnLogin">Login Automático</button>
+
+    <div class="results">
+        <h2>Resultados:</h2>
+        <pre id="console-output"></pre>
+    </div>
+
+    <script>
+        function logToConsole(message) {
+            const consoleOutput = document.getElementById('console-output');
+            consoleOutput.textContent += message + '\n';
+        }
+
+        document.getElementById('btnLogin').addEventListener('click', async () => {
+            logToConsole('Iniciando login automático...');
+
+            try {
+                // Create a dummy user if it doesn't exist
+                logToConsole('Criando usuário de teste...');
+                const registerResponse = await fetch('http://localhost:3000/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        nome: 'Teste User 2',
+                        email: 'teste2@example.com',
+                        telefone: '912345679',
+                        palavra_passe: '123456'
+                    })
+                });
+
+                const registerResult = await registerResponse.json();
+                logToConsole('Resposta ao registro: ' + JSON.stringify(registerResult));
+
+                // Login
+                logToConsole('Tentando login...');
+                const loginResponse = await fetch('http://localhost:3000/cliente/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'teste2@example.com',
+                        palavra_passe: '123456'
+                    })
+                });
+
+                const loginResult = await loginResponse.json();
+                logToConsole('Resposta ao login: ' + JSON.stringify(loginResult));
+
+                if (loginResult.ok && loginResult.cliente) {
+                    logToConsole('Login bem-sucedido!');
+                    // Set user in localStorage
+                    localStorage.setItem('loggedInUser', JSON.stringify(loginResult.cliente));
+                    logToConsole('Usuário armazenado no localStorage: ' + JSON.stringify(loginResult.cliente));
+                    // Redirect to marcar.html
+                    logToConsole('Redirecionando para marcar.html...');
+                    window.location.href = 'marcar.html';
+                } else {
+                    logToConsole('Erro no login: ' + (loginResult.erro || 'Erro desconhecido'));
+                }
+            } catch (error) {
+                logToConsole('Erro: ' + error.message);
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>
