@@ -28,12 +28,24 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
+const bcrypt = require("bcryptjs");
 
 // IMPORTANTE: msnodesqlv8 para Windows Auth
 const sql = require("mssql/msnodesqlv8");
 
 // Importar serviço de email
 const emailService = require("./emailService");
+
+// Função para hash de palavras-passe
+const hashPassword = async (password) => {
+  const saltRounds = 10;
+  return await bcrypt.hash(password, saltRounds);
+};
+
+// Função para comparar palavras-passe
+const comparePassword = async (password, hashedPassword) => {
+  return await bcrypt.compare(password, hashedPassword);
+};
 
 const app = express();
 const PORT = 3000;
@@ -111,21 +123,29 @@ app.post("/login", async (req, res) => {
       return res.status(400).json({ erro: "Faltam credenciais" });
     }
 
+    // Obter admin com email
     const result = await pool
       .request()
       .input("email", sql.NVarChar(255), email)
-      .input("pass", sql.NVarChar(255), pass)
       .query(`
-        SELECT id_admin, nome
+        SELECT id_admin, nome, palavra_passe
         FROM Administradores
-        WHERE email = @email AND palavra_passe = @pass
+        WHERE email = @email
       `);
 
     if (result.recordset.length === 0) {
       return res.status(401).json({ erro: "Email ou palavra-passe incorretos" });
     }
 
-    return res.json({ ok: true, admin: result.recordset[0].nome });
+    // Verificar palavra-passe
+    const admin = result.recordset[0];
+    const isPasswordValid = await comparePassword(pass, admin.palavra_passe);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ erro: "Email ou palavra-passe incorretos" });
+    }
+
+    return res.json({ ok: true, admin: admin.nome });
   } catch (err) {
     return res.status(500).json({ erro: err.message });
   }
@@ -183,13 +203,16 @@ app.post("/register", async (req, res) => {
       `;
     }
 
+    // Hash da palavra-passe
+    const hashedPassword = await hashPassword(pass);
+
     // Criar novo cliente
     const result = await pool
       .request()
       .input("nome", sql.NVarChar(255), nome)
       .input("email", sql.NVarChar(255), email)
       .input("telefone", sql.NVarChar(20), telefone)
-      .input("pass", sql.NVarChar(255), pass)
+      .input("pass", sql.NVarChar(255), hashedPassword)
       .query(query);
 
     if (result.recordset.length === 0) {
@@ -236,31 +259,42 @@ app.post("/cliente/login", async (req, res) => {
     let query;
     if (hasPalavraPasseColumn) {
       query = `
-        SELECT id_cliente, nome_cliente, email, telefone
+        SELECT id_cliente, nome_cliente, email, telefone, palavra_passe
         FROM Clientes
-        WHERE email = @email AND palavra_passe = @pass
+        WHERE email = @email
       `;
     } else {
       query = `
-        SELECT id_cliente, nome_cliente, email, telefone
+        SELECT id_cliente, nome_cliente, email, telefone, senha
         FROM Clientes
-        WHERE email = @email AND senha = @pass
+        WHERE email = @email
       `;
     }
 
     const result = await pool
       .request()
       .input("email", sql.NVarChar(255), email)
-      .input("pass", sql.NVarChar(255), pass)
       .query(query);
 
     if (result.recordset.length === 0) {
       return res.status(401).json({ erro: "Email ou palavra-passe incorretos" });
     }
 
+    // Verificar palavra-passe
+    const cliente = result.recordset[0];
+    const storedPassword = hasPalavraPasseColumn ? cliente.palavra_passe : cliente.senha;
+    const isPasswordValid = await comparePassword(pass, storedPassword);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ erro: "Email ou palavra-passe incorretos" });
+    }
+
+    // Remover a palavra-passe do objeto a enviar ao frontend
+    const { palavra_passe: _, senha: __, ...clienteWithoutPassword } = cliente;
+
     return res.json({ 
       ok: true, 
-      cliente: result.recordset[0]
+      cliente: clienteWithoutPassword
     });
   } catch (err) {
     return res.status(500).json({ erro: err.message });
