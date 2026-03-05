@@ -16,7 +16,7 @@ const hashPassword = async (password) => {
 
 // Função para verificar se uma string já é um hash bcrypt válido
 const isBcryptHash = (str) => {
-  return str.length === 60 && str.startsWith("$2a$") && str.includes(".");
+  return str.length === 60 && (str.startsWith("$2a$") || str.startsWith("$2b$")) && str.includes(".");
 };
 
 // Função para hash das palavras-passe existentes na tabela Administradores
