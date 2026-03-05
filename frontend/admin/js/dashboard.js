@@ -1,10 +1,9 @@
 (async function () {
-  // Skip login for testing
-  // const loggedIn = localStorage.getItem("adminLoggedIn") === "true";
-  // if (!loggedIn) {
-  //   window.location.href = "login.html";
-  //   return;
-  // }
+  const loggedIn = localStorage.getItem("adminLoggedIn") === "true";
+  if (!loggedIn) {
+    window.location.href = "login.html";
+    return;
+  }
 
   const area = document.getElementById("agendamentosArea");
 

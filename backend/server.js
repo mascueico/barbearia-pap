@@ -137,9 +137,9 @@ app.post("/login", async (req, res) => {
       return res.status(401).json({ erro: "Email ou palavra-passe incorretos" });
     }
 
-    // Verificar palavra-passe (para teste, aceitar senha 1234 diretamente)
+    // Verificar palavra-passe
     const admin = result.recordset[0];
-    const isPasswordValid = pass === '1234';
+    const isPasswordValid = await comparePassword(pass, admin.palavra_passe);
 
     if (!isPasswordValid) {
       return res.status(401).json({ erro: "Email ou palavra-passe incorretos" });
