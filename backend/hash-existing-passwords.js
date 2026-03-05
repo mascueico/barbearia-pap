@@ -1,4 +1,4 @@
-uizconst bcrypt = require("bcryptjs");
+const bcrypt = require("bcryptjs");
 const sql = require("mssql/msnodesqlv8");
 
 // Configuração da base de dados
