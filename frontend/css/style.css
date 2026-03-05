@@ -65,16 +65,16 @@ nav a:hover::after {
 
 /* Login Link Styles */
 nav a.login-link {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #2563eb;
   padding: 0.5rem 1.5rem;
   border-radius: 25px;
   transition: all 0.3s ease;
 }
 
 nav a.login-link:hover {
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  background: #1d4ed8;
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
 }
 
 nav a.login-link::after {
@@ -290,14 +290,14 @@ h2::after {
   background: #fafafa;
 }
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: #1a1a1a;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
-}
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #1a1a1a;
+        background: #fff;
+        box-shadow: 0 0 0 3px #1a1a1a;
+    }
 
 .form-group textarea {
   resize: vertical;

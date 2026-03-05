@@ -67,7 +67,7 @@ input[type="password"]:focus {
   outline: none;
   border-color: #1a1a1a;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
+  box-shadow: 0 0 0 3px #1a1a1a;
 }
 
 /* Buttons */
@@ -171,7 +171,7 @@ button:hover {
 .filtro-grupo input[type="text"]:focus {
   outline: none;
   border-color: #1a1a1a;
-  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
+  box-shadow: 0 0 0 3px #1a1a1a;
 }
 
 #btnLimparFiltros {
