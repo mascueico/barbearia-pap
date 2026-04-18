@@ -87,7 +87,7 @@ app.get("/__debug", (req, res) => {
  */
 const dbConfig = {
   connectionString:
-    "Driver={ODBC Driver 17 for SQL Server};Server=ERCERC-VKKKCOPK;Database=Barbearia;Trusted_Connection=Yes;",
+    "Driver={ODBC Driver 17 for SQL Server};Server=localhost\\SQLEXPRESS;Database=Barbearia;Trusted_Connection=Yes;",
   options: { trustServerCertificate: true },
 };
 
