@@ -6,6 +6,46 @@
   <title>Serviços - Flokiko Barbershop</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    .services-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .service-card {
+      background: #fff;
+      padding: 2.5rem 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      text-align: center;
+      transition: all 0.3s ease;
+      border: 1px solid #e0e0e0;
+    }
+    .service-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+    .service-card h3 {
+      color: #1a1a1a;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 1rem;
+    }
+    .service-card p {
+      color: #666;
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+    .price {
+      font-size: 1.8rem;
+    }
+    .price {
+      color: #000;
+    }
+  </style>
 </head>
 <body>
 
@@ -17,7 +57,7 @@
       <a href="marcar.html">Agendamentos</a>
       <a href="contacto.html">Contacto</a>
       <a href="barbeiros.html">Barbeiros</a>
-      <a href="login.html" class="login-link">Login</a>
+      
     </nav>
   </header>
 

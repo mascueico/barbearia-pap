@@ -4,74 +4,7 @@ console.log("✅ marcar.js carregou");
 const today = new Date().toISOString().split('T')[0];
 document.getElementById('data').setAttribute('min', today);
 
-// Get logged in user from localStorage
-function getLoggedInUser() {
-  const userData = localStorage.getItem('loggedInUser');
-  return userData ? JSON.parse(userData) : null;
-}
-
-// Display user info or login prompt
-function displayUserInfo() {
-    console.log('displayUserInfo() called');
-  const user = getLoggedInUser();
-  const userInfoContainer = document.getElementById('user-info-container');
-  const bookingForm = document.getElementById('booking-form');
-
-  if (user) {
-    // User is logged in
-    userInfoContainer.innerHTML = `
-      <div class="user-info">
-        <div class="user-details">
-          <div class="user-avatar">
-            <i class="fas fa-user"></i>
-          </div>
-          <div class="user-name">Olá, ${user.nome_cliente}</div>
-        </div>
-        <button class="logout-btn" onclick="logout()">
-          <i class="fas fa-sign-out-alt"></i> Sair
-        </button>
-      </div>
-    `;
-    // Fill in user information in the form
-    document.getElementById('nome').value = user.nome_cliente;
-    document.getElementById('email').value = user.email;
-    document.getElementById('telefone').value = user.telefone;
-    // Disable editing user info
-    document.getElementById('nome').disabled = true;
-    document.getElementById('email').disabled = true;
-    document.getElementById('telefone').disabled = true;
-  } else {
-    // User is not logged in
-    userInfoContainer.innerHTML = `
-      <div class="login-prompt">
-        <h3><i class="fas fa-lock"></i> Área restrita</h3>
-        <p>Para fazer uma marcação, precisa de estar registado e autenticado.</p>
-        <a href="login.html" class="btn">
-          <i class="fas fa-sign-in-alt"></i> Login / Registar
-        </a>
-      </div>
-    `;
-    // Disable form
-    bookingForm.style.display = 'none';
-  }
-}
-
-// Logout function
-function logout() {
-  localStorage.removeItem('loggedInUser');
-  window.location.href = 'login.html';
-}
-
 (async function () {
-  // Display user info or login prompt
-  displayUserInfo();
-
-  // Check if user is logged in before continuing
-  const user = getLoggedInUser();
-  if (!user) {
-    return;
-  }
-
   const nome = document.getElementById("nome");
   const email = document.getElementById("email");
   const telefone = document.getElementById("telefone");
@@ -85,22 +18,17 @@ function logout() {
   const btnVerHoras = document.getElementById("btnVerHoras");
   const btnMarcar = document.getElementById("btnMarcar");
 
-  let aMarcar = false; // ✅ bloqueia duplo clique
+  let aMarcar = false;
 
   function setMsg(t) {
     msg.textContent = t || "";
   }
 
-  // placeholders iniciais
   selServicos.innerHTML = `<option value="">-- a carregar serviços --</option>`;
   selFuncionarios.innerHTML = `<option value="">-- a carregar funcionários --</option>`;
   selHora.innerHTML = `<option value="">-- escolhe serviço/funcionário/data --</option>`;
 
-  // ============================
-  // 1) Carregar serviços e funcionários
-  // ============================
   try {
-    // Serviços
     const servRes = await fetch("http://localhost:3000/servicos");
     console.log("Status /servicos:", servRes.status);
 
@@ -117,7 +45,6 @@ function logout() {
       `<option value="">-- escolhe um serviço --</option>` +
       servicos.map(s => `<option value="${s.id_servico}">${s.nome_servico}</option>`).join("");
 
-    // Funcionários
     const funcRes = await fetch("http://localhost:3000/funcionarios");
     console.log("Status /funcionarios:", funcRes.status);
 
@@ -143,9 +70,6 @@ function logout() {
     return;
   }
 
-  // ============================
-  // 2) Carregar horas disponíveis
-  // ============================
   async function carregarHorarios() {
     setMsg("");
     selHora.innerHTML = `<option value="">(A carregar...)</option>`;
@@ -195,7 +119,6 @@ function logout() {
 
   btnVerHoras.addEventListener("click", carregarHorarios);
 
-  // Se mudares serviço/funcionário/data, limpa horas
   function resetHoras() {
     selHora.innerHTML = `<option value="">(Carrega horários)</option>`;
   }
@@ -203,9 +126,6 @@ function logout() {
   selFuncionarios.addEventListener("change", resetHoras);
   inputData.addEventListener("change", resetHoras);
 
-  // ============================
-  // 3) Criar agendamento
-  // ============================
   btnMarcar.addEventListener("click", async () => {
     if (aMarcar) return;
 
@@ -216,7 +136,6 @@ function logout() {
       return;
     }
 
-    // Validar email (opcional mas recomendado)
     const emailValue = email.value.trim();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (emailValue && !emailRegex.test(emailValue)) {
@@ -244,7 +163,6 @@ function logout() {
       return;
     }
 
-    // Check if booking time is in the past
     const bookingDateTime = new Date(`${data}T${hora}:00`);
     const now = new Date();
     if (bookingDateTime < now) {
@@ -270,7 +188,6 @@ function logout() {
         observacoes: obs.value.trim()
       });
 
-      // 3.1) Criar/obter cliente
       const resCli = await fetch("http://localhost:3000/clientes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -292,7 +209,6 @@ function logout() {
       const id_cliente = outCli.id_cliente;
       console.log('Client ID:', id_cliente);
 
-      // 3.2) Criar agendamento
       const resAg = await fetch("http://localhost:3000/agendamentos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -318,16 +234,12 @@ function logout() {
         return;
       }
 
-      // ✅ sucesso
       setMsg("✅ Agendamento criado! Está como Pendente (aguarda confirmação).");
 
-      // limpar observações
       obs.value = "";
 
-      // atualizar lista de horas (para remover a hora ocupada)
       await carregarHorarios();
 
-      // opcional: limpar a hora selecionada
       selHora.value = "";
 
     } catch (e) {
