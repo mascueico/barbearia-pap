@@ -785,6 +785,7 @@ app.get("/horarios-disponiveis", async (req, res) => {
     let t = roundUpToStep(inicioDia, STEP_MIN);
 
     const agora = new Date();
+    const horaMinima = new Date(agora.getTime() + 60 * 60 * 1000); // +1 hora
     const hojeStr = agora.toISOString().slice(0, 10);
 
     const disponiveis = [];
@@ -795,8 +796,8 @@ app.get("/horarios-disponiveis", async (req, res) => {
     ) {
       const tFim = new Date(t.getTime() + duracaoMin * 60000);
 
-       // se for hoje, não sugerir horários no passado
-       if (data === hojeStr && t <= agora) continue;
+       // se for hoje, não sugerir horários menos de 1 hora depois da hora atual
+       if (data === hojeStr && t < horaMinima) continue;
 
       // conflitos
       const choca = ocupados.some(o => sobrepoe(t, tFim, o.ini, o.fim));
