@@ -949,8 +949,8 @@ app.post("/clientes", async (req, res) => {
     }
 
     if (existe.recordset.length > 0) {
-      // Atualizar email se fornecido e não existir
-      if (email && !existe.recordset[0].email) {
+      // Atualizar email se fornecido
+      if (email) {
         await pool
           .request()
           .input("id_cliente", sql.Int, existe.recordset[0].id_cliente)
