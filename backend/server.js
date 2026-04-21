@@ -960,20 +960,20 @@ app.post("/clientes", async (req, res) => {
       return res.json({ ok: true, id_cliente: existe.recordset[0].id_cliente });
     }
 
-    // email/senha temporários (podes trocar por registo real depois)
+    // email/palavra_passe temporários (podes trocar por registo real depois)
     const emailGerado = email || `cliente_${telefone.replace(/\s+/g, "")}@pap.local`;
-    const senhaGerada = `temp_${Math.random().toString(36).slice(2, 10)}`;
+    const palavra_passe = `temp_${Math.random().toString(36).slice(2, 10)}`;
 
     const criado = await pool
       .request()
       .input("nome", sql.VarChar(150), nome)
       .input("email", sql.VarChar(150), emailGerado)
       .input("telefone", sql.VarChar(30), telefone)
-      .input("senha", sql.VarChar(255), senhaGerada)
+      .input("palavra_passe", sql.VarChar(255), palavra_passe)
       .query(`
-        INSERT INTO Clientes (nome_cliente, email, telefone, data_registo, senha)
+        INSERT INTO Clientes (nome_cliente, email, telefone, data_registo, palavra_passe)
         OUTPUT INSERTED.id_cliente
-        VALUES (@nome, @email, @telefone, GETDATE(), @senha)
+        VALUES (@nome, @email, @telefone, GETDATE(), @palavra_passe)
       `);
 
     console.log('Client created:', criado.recordset);
